@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // Test route
 app.get('/', (req, res) => {

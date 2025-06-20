@@ -53,6 +53,32 @@ export const authService = {
     const response = await api.get('/auth/me');
     return response.data;
   },
+  
+  // Update user profile
+  updateProfile: async (userData) => {
+    const response = await api.patch('/users/profile', userData);
+    
+    // Update local storage with new user data
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (currentUser) {
+      const updatedUser = { ...currentUser, ...userData };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+    
+    return response.data;
+  },
+  
+  // Change password
+  changePassword: async (passwordData) => {
+    const response = await api.post('/auth/change-password', passwordData);
+    return response.data;
+  },
+  
+  // Delete account
+  deleteAccount: async () => {
+    const response = await api.delete('/users/profile');
+    return response.data;
+  },
 };
 
 export default authService;
