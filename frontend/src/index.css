@@ -4,3 +4,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* GSAP Animation Performance Optimizations */
+.feature-card {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.feature-card.animated {
+  will-change: auto;
+}
+
+/* Hardware acceleration for smooth animations */
+.parallax-bg {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize images for better performance */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
