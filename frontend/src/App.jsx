@@ -17,7 +17,7 @@ function App() {
   return (
     <ChakraProvider>
       <Router>
-        <div className="App">
+        <div className="App font-dm-regular antialiased">
           <Routes>
             <Route 
               path="/" 

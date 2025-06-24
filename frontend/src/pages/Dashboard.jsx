@@ -25,13 +25,12 @@ const Dashboard = () => {
     fetchUserProfile();
   }, []);
   // Cards for the dashboard section
-  const dashboardCards = [
-    {
+  const dashboardCards = [    {
       title: 'Upload Files',
       description: 'Upload and manage your Excel files',
       icon: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
-      color: 'bg-blue-500',
-      iconColor: 'text-blue-500',
+      color: 'bg-malachite-500',
+      iconColor: 'text-malachite-500',
       action: 'Upload',
       soon: false,
       onClick: () => handleUploadClick()
@@ -40,8 +39,8 @@ const Dashboard = () => {
       title: 'Analyze Data',
       description: 'Visualize and understand your data',
       icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
-      color: 'bg-green-500',
-      iconColor: 'text-green-500',
+      color: 'bg-limegreen-500',
+      iconColor: 'text-limegreen-500',
       action: 'Analyze',
       soon: true
     },
@@ -49,8 +48,8 @@ const Dashboard = () => {
       title: 'Generate Reports',
       description: 'Create and share professional reports',
       icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-      color: 'bg-purple-500',
-      iconColor: 'text-purple-500',
+      color: 'bg-pigmentgreen-500',
+      iconColor: 'text-pigmentgreen-500',
       action: 'Generate',
       soon: true
     },
@@ -58,18 +57,17 @@ const Dashboard = () => {
       title: 'AI Insights',
       description: 'Get intelligent insights from your data',
       icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-      color: 'bg-orange-500',
-      iconColor: 'text-orange-500',
+      color: 'bg-blackolive-500',
+      iconColor: 'text-blackolive-500',
       action: 'Explore',
       soon: true
     }
   ];
-
   // Key metrics for dashboard
   const metrics = [
-    { label: 'Files', value: '0', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', color: 'text-blue-600' },
-    { label: 'Sheets', value: '0', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-emerald-600' },
-    { label: 'Data Points', value: '0', icon: 'M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z', color: 'text-purple-600' },
+    { label: 'Files', value: '0', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', color: 'text-malachite-600' },
+    { label: 'Sheets', value: '0', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-limegreen-600' },
+    { label: 'Data Points', value: '0', icon: 'M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z', color: 'text-pigmentgreen-600' },
   ];
 
   // Handle click away from user menu
@@ -102,48 +100,46 @@ const Dashboard = () => {
   const handleUploadClick = () => {
     navigate('/upload');
   };
-
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-malachite-50">
         <div className="bg-white shadow sticky top-0 z-10 flex justify-between items-center px-6 h-16">
-          <h1 className="text-xl font-semibold text-blue-600">Excel Analytics Platform</h1>
+          <h1 className="text-xl font-semibold text-pigmentgreen-600">Excel Analytics Platform</h1>
         </div>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-malachite-600"></div>
         </div>
       </div>
     );
   }
-  return (
-    <div className="min-h-screen bg-gray-50">      {/* Top Navbar with Navigation */}      <header className="bg-white shadow sticky top-0 z-20">
+  return (    <div className="min-h-screen bg-malachite-50">      {/* Top Navbar with Navigation */}      <header className="bg-white shadow sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-blue-600 mr-10">Excel Analytics Platform</h1>
+              <h1 className="text-xl font-semibold text-pigmentgreen-600 mr-10">Excel Analytics Platform</h1>
               
               {/* Navigation Bar - now inline with logo - Dashboard removed */}
               <nav className="flex space-x-8">
                 <button 
                   className={`py-4 px-2 border-b-2 font-medium text-sm ${activeTab === 1 
-                    ? 'border-blue-600 text-blue-600' 
-                    : 'border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300'}`}
+                    ? 'border-malachite-600 text-malachite-600' 
+                    : 'border-transparent text-blackolive-500 hover:text-pigmentgreen-600 hover:border-malachite-300'}`}
                   onClick={() => setActiveTab(1)}
                 >
                   Files
                 </button>
                 <button 
                   className={`py-4 px-2 border-b-2 font-medium text-sm ${activeTab === 2 
-                    ? 'border-blue-600 text-blue-600' 
-                    : 'border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300'}`}
+                    ? 'border-malachite-600 text-malachite-600' 
+                    : 'border-transparent text-blackolive-500 hover:text-pigmentgreen-600 hover:border-malachite-300'}`}
                   onClick={() => setActiveTab(2)}
                 >
                   Analytics
                 </button>
                 <button 
                   className={`py-4 px-2 border-b-2 font-medium text-sm ${activeTab === 3 
-                    ? 'border-blue-600 text-blue-600' 
-                    : 'border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300'}`}
+                    ? 'border-malachite-600 text-malachite-600' 
+                    : 'border-transparent text-blackolive-500 hover:text-pigmentgreen-600 hover:border-malachite-300'}`}
                   onClick={() => setActiveTab(3)}
                 >
                   Reports
@@ -159,8 +155,8 @@ const Dashboard = () => {
                 aria-expanded={showUserMenu}
                 aria-haspopup="true"
               >
-                <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="text-blue-600 font-semibold">
+                <div className="h-9 w-9 rounded-full bg-malachite-100 flex items-center justify-center">
+                  <span className="text-pigmentgreen-600 font-semibold">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
@@ -168,26 +164,26 @@ const Dashboard = () => {
               
               {/* Dropdown menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-30 border border-gray-200">
-                  <div className="px-4 py-3 border-b border-gray-100 text-center">
-                    <p className="text-lg font-medium text-gray-900">{user?.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-30 border border-malachite-200">
+                  <div className="px-4 py-3 border-b border-malachite-100 text-center">
+                    <p className="text-lg font-medium text-jet-500">{user?.name}</p>
+                    <p className="text-sm text-blackolive-500 truncate">{user?.email}</p>
                   </div>
                   <button 
                     onClick={goToProfile} 
-                    className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2.5 text-sm text-blackolive-500 hover:bg-malachite-50"
                   >
                     Your Profile
                   </button>
                   <button 
-                    className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2.5 text-sm text-blackolive-500 hover:bg-malachite-50"
                   >
                     Settings
                   </button>
-                  <div className="border-t border-gray-100"></div>
+                  <div className="border-t border-malachite-100"></div>
                   <button 
                     onClick={handleSignOut}
-                    className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2.5 text-sm text-blackolive-500 hover:bg-malachite-50"
                   >
                     Sign out
                   </button>
