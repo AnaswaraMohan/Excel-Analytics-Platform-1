@@ -421,11 +421,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **File Size Error**: Maximum file size is 5MB
 - **Upload Timeout**: Check network connection and file size
 
-### **Getting Help**
-- 📧 **Email**: [your-email@example.com]
-- 💬 **Discord**: [Your Discord Server]
-- 🐛 **Issues**: [GitHub Issues](https://github.com/your-username/Excel-Analytics-Platform/issues)
-- 📖 **Wiki**: [Project Wiki](https://github.com/your-username/Excel-Analytics-Platform/wiki)
 
 ### **Development Notes**
 - **Backend**: Runs on port 5000 with auto-restart via Nodemon
