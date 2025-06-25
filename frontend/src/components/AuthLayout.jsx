@@ -1,4 +1,5 @@
 import React from 'react';
+import Footer from './Footer';
 
 const AuthLayout = ({ children, title, subtitle }) => {
   return (    <div className="min-h-screen bg-gradient-to-br from-malachite-50 via-white to-limegreen-100">
@@ -76,11 +77,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
             </div>
 
             {/* Mobile Footer */}
-            <div className="text-center mt-8 animate-fade-in">
-              <p className="text-sm text-blackolive-400">
-                © 2025 Excel Analytics Platform. All rights reserved.
-              </p>
-            </div>
+            <Footer />
           </div>
         </div>
       </div>

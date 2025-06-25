@@ -35,6 +35,8 @@ yarn-error.log*
 *.sln
 *.sw?
 
-# Exclude cursor and user input files
+
+#Remove the Usersystem files and rules file
+
 .cursor
 userinput.py

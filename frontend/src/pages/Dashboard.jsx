@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../utils/auth';
 import { toast } from 'react-toastify';
+import Footer from '../components/Footer';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -129,7 +130,7 @@ const Dashboard = () => {
                   Overview
                 </button>
                 <Link 
-                  to="/features"
+                  to="/#features"
                   className="py-4 px-2 border-b-2 border-transparent text-blackolive-500 hover:text-pigmentgreen-600 hover:border-malachite-300 font-medium text-sm"
                 >
                   Features
@@ -329,49 +330,7 @@ const Dashboard = () => {
             </section>
 
             {/* Footer Section */}
-            <footer className="bg-white border-t border-gray-200 py-12">
-              <div className="max-w-7xl mx-auto px-4 w-full">
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                  <div className="mb-6 md:mb-0">
-                    <h2 className="text-lg font-bold text-blue-600">Excel Analytics Platform</h2>
-                    <p className="text-sm text-gray-500 mt-2">Transform your data into actionable insights</p>
-                  </div>
-                  
-                  <div className="flex space-x-8">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Resources</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Documentation</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Tutorials</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">API</a></li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Connect</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Contact</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Support</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Feedback</a></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border-t border-gray-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-                  <p className="text-sm text-gray-500">© 2025 Excel Analytics Platform. All rights reserved.</p>
-                  <div className="mt-4 md:mt-0 flex space-x-6">
-                    <a href="#" className="text-gray-400 hover:text-blue-600">
-                      <span className="sr-only">Privacy Policy</span>
-                      Privacy Policy
-                    </a>
-                    <a href="#" className="text-gray-400 hover:text-blue-600">
-                      <span className="sr-only">Terms of Service</span>
-                      Terms of Service
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </footer>
+            <Footer />
           </div>
         )}        {activeTab === 1 && (
           <div>
@@ -418,41 +377,7 @@ const Dashboard = () => {
             </div>
             
             {/* Footer Section */}
-            <footer className="bg-white border-t border-gray-200 py-12">
-              <div className="max-w-7xl mx-auto px-4 w-full">
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                  <div className="mb-6 md:mb-0">
-                    <h2 className="text-lg font-bold text-blue-600">Excel Analytics Platform</h2>
-                    <p className="text-sm text-gray-500 mt-2">Transform your data into actionable insights</p>
-                  </div>
-                  
-                  <div className="flex space-x-8">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Resources</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Documentation</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Tutorials</a></li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Connect</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Support</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Feedback</a></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border-t border-gray-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-                  <p className="text-sm text-gray-500">© 2025 Excel Analytics Platform. All rights reserved.</p>
-                  <div className="mt-4 md:mt-0 flex space-x-6">
-                    <a href="#" className="text-gray-400 hover:text-blue-600">Privacy Policy</a>
-                    <a href="#" className="text-gray-400 hover:text-blue-600">Terms of Service</a>
-                  </div>
-                </div>
-              </div>
-            </footer>
+            <Footer />
           </div>
         )}        {activeTab === 2 && (
           <div>
@@ -485,41 +410,7 @@ const Dashboard = () => {
             </div>
             
             {/* Footer Section */}
-            <footer className="bg-white border-t border-gray-200 py-12">
-              <div className="max-w-7xl mx-auto px-4 w-full">
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                  <div className="mb-6 md:mb-0">
-                    <h2 className="text-lg font-bold text-blue-600">Excel Analytics Platform</h2>
-                    <p className="text-sm text-gray-500 mt-2">Transform your data into actionable insights</p>
-                  </div>
-                  
-                  <div className="flex space-x-8">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Resources</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Documentation</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Tutorials</a></li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Connect</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Support</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Feedback</a></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border-t border-gray-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-                  <p className="text-sm text-gray-500">© 2025 Excel Analytics Platform. All rights reserved.</p>
-                  <div className="mt-4 md:mt-0 flex space-x-6">
-                    <a href="#" className="text-gray-400 hover:text-blue-600">Privacy Policy</a>
-                    <a href="#" className="text-gray-400 hover:text-blue-600">Terms of Service</a>
-                  </div>
-                </div>
-              </div>
-            </footer>
+            <Footer />
           </div>
         )}
 
@@ -554,41 +445,7 @@ const Dashboard = () => {
             </div>
             
             {/* Footer Section */}
-            <footer className="bg-white border-t border-gray-200 py-12">
-              <div className="max-w-7xl mx-auto px-4 w-full">
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                  <div className="mb-6 md:mb-0">
-                    <h2 className="text-lg font-bold text-blue-600">Excel Analytics Platform</h2>
-                    <p className="text-sm text-gray-500 mt-2">Transform your data into actionable insights</p>
-                  </div>
-                  
-                  <div className="flex space-x-8">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Resources</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Documentation</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Tutorials</a></li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Connect</h3>
-                      <ul className="space-y-2">
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Support</a></li>
-                        <li><a href="#" className="text-sm text-gray-500 hover:text-blue-600">Feedback</a></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border-t border-gray-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-                  <p className="text-sm text-gray-500">© 2025 Excel Analytics Platform. All rights reserved.</p>
-                  <div className="mt-4 md:mt-0 flex space-x-6">
-                    <a href="#" className="text-gray-400 hover:text-blue-600">Privacy Policy</a>
-                    <a href="#" className="text-gray-400 hover:text-blue-600">Terms of Service</a>
-                  </div>
-                </div>
-              </div>
-            </footer>
+            <Footer />
           </div>
         )}
       </main>

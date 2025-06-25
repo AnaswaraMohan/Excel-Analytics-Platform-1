@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import uploadExcelImage from '../assets/uploadExcel.png';
 import interactiveChartsImage from '../assets/InteractiveCharts.png';
 import insightsImage from '../assets/Insights.jpg';
 import moonImage from '../assets/Moon.png';
+import spectralImage from '../assets/Spectral.jpg';
+import Footer from '../components/Footer';
 
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger);
@@ -15,7 +17,8 @@ const LandingPage = () => {
   const sectionRefs = useRef([]);
   const heroRef = useRef(null);
   const ctaRef = useRef(null);
-  const statsRef = useRef([]);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const securityCardsRef = useRef([]);
 
   useEffect(() => {
     // Enable GSAP performance optimizations
@@ -40,61 +43,6 @@ const LandingPage = () => {
         }
       );
     }
-
-    // Stats counter animation
-    statsRef.current.forEach((ref, index) => {
-      if (ref) {
-        const countElement = ref.querySelector('.count-number');
-        if (countElement) {
-          const targetText = countElement.textContent;
-          const targetValue = parseInt(targetText.replace(/[^\d]/g, ''));
-          
-          gsap.fromTo(ref,
-            { 
-              opacity: 0, 
-              y: 30,
-              scale: 0.9
-            },
-            {
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              duration: 0.8,
-              ease: "power2.out",
-              delay: 1 + (index * 0.1)
-            }
-          );
-
-          // Counter animation
-          if (targetValue > 0) {
-            gsap.fromTo(countElement,
-              { textContent: 0 },
-              {
-                textContent: targetValue,
-                duration: 2,
-                ease: "power2.out",
-                snap: { textContent: 1 },
-                delay: 1.2,
-                onUpdate: function() {
-                  const current = Math.round(this.targets()[0].textContent);
-                  if (targetText.includes('K+')) {
-                    countElement.textContent = current + 'K+';
-                  } else if (targetText.includes('%')) {
-                    countElement.textContent = current + '%';
-                  } else if (targetText.includes('/')) {
-                    countElement.textContent = current + '/7';
-                  } else if (targetText.includes('+')) {
-                    countElement.textContent = current + '+';
-                  } else {
-                    countElement.textContent = current;
-                  }
-                }
-              }
-            );
-          }
-        }
-      }
-    });
 
     // Set initial state for feature cards with hardware acceleration
     gsap.set(featureRefs.current, { 
@@ -210,7 +158,7 @@ const LandingPage = () => {
     featureCards.forEach((card) => {
       card.addEventListener('mouseenter', () => {
         gsap.to(card, {
-          scale: 1.02,
+          scale: 1.01,
           duration: 0.3,
           ease: "power2.out"
         });
@@ -239,6 +187,82 @@ const LandingPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const cards = securityCardsRef.current;
+      cards.forEach((card) => {
+        if (!card) return;
+        
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        card.style.setProperty("--mouse-x", `${x}px`);
+        card.style.setProperty("--mouse-y", `${y}px`);
+      });
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
+  useEffect(() => {
+    const headings = document.querySelectorAll('.section-heading');
+    
+    headings.forEach(heading => {
+      // Split text into words first
+      const words = heading.textContent.split(' ');
+      heading.textContent = '';
+      
+      words.forEach((word, wordIndex) => {
+        const wordSpan = document.createElement('span');
+        wordSpan.className = 'word';
+        
+        // Split each word into characters
+        const chars = word.split('');
+        chars.forEach((char, charIndex) => {
+          const span = document.createElement('span');
+          span.textContent = char;
+          span.className = 'float-text';
+          span.style.setProperty('--char-index', charIndex);
+          span.style.setProperty('--word-index', wordIndex);
+          wordSpan.appendChild(span);
+        });
+        
+        heading.appendChild(wordSpan);
+        // Add space after each word except the last one
+        if (wordIndex < words.length - 1) {
+          heading.appendChild(document.createTextNode(' '));
+        }
+      });
+
+      gsap.set(heading.querySelectorAll('.float-text'), {
+        opacity: 0,
+        y: 20
+      });
+
+      ScrollTrigger.create({
+        trigger: heading,
+        start: 'top bottom-=100',
+        onEnter: () => {
+          gsap.to(heading.querySelectorAll('.float-text'), {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: "power4.out",
+            stagger: {
+              amount: 0.3,
+              from: "start"
+            }
+          });
+        }
+      });
+    });
+  }, []);
+
   const addFeatureRef = (el) => {
     if (el && !featureRefs.current.includes(el)) {
       featureRefs.current.push(el);
@@ -251,11 +275,6 @@ const LandingPage = () => {
     }
   };
 
-  const addStatRef = (el) => {
-    if (el && !statsRef.current.includes(el)) {
-      statsRef.current.push(el);
-    }
-  };
   return (
     <div className="min-h-screen flex flex-col">      {/* Floating Navigation Bar */}
       <nav className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-4 h-20">
@@ -268,7 +287,7 @@ const LandingPage = () => {
               </div>
               <div className="hidden md:flex items-center space-x-6">
                 <Link to="/" className="text-white/90 font-medium hover:text-white transition-colors duration-200">Home</Link>
-                <Link to="/features" className="text-white/90 font-medium hover:text-white transition-colors duration-200">Features</Link>
+                <a href="#features" className="text-white/90 font-medium hover:text-white transition-colors duration-200">Features</a>
               </div>
             </div>
           </div>
@@ -293,7 +312,7 @@ const LandingPage = () => {
       </nav><main className="flex-grow">        {/* Hero Section */}
         <section 
           ref={addSectionRef}
-          className="parallax-bg min-h-screen flex items-center justify-center pt-32 pb-20 relative bg-cover bg-center bg-no-repeat"
+          className="parallax-bg min-h-screen flex items-center justify-center pt-32 pb-16 relative bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: `url(${moonImage})`
           }}
@@ -301,105 +320,86 @@ const LandingPage = () => {
           {/* Background overlay for better text readability */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"></div>
           {/* Black gradient overlay at bottom */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
           
-          <div ref={heroRef} className="max-w-7xl mx-auto px-4 w-full relative z-10">
-            <div className="text-center space-y-16">
+          <div ref={heroRef} className="max-w-6xl mx-auto px-4 w-full relative z-10">
+            <div className="text-center">
               {/* Text Content */}
-              <div className="flex flex-col justify-center space-y-6">
-                <div className="max-w-5xl mx-auto">
-                  <h1 className="text-7xl lg:text-8xl font-bold leading-tight text-white mb-6">
-                    <div className="flex items-center justify-center gap-4 flex-wrap">
-                      Turn <span className="font-bold italic">Excel</span>
-                      <div className="w-20 h-12 bg-white/20 rounded-full backdrop-blur-sm border border-white/30 flex items-center justify-center">
-                        <div className="w-16 h-8 bg-white/10 rounded-full"></div>
+                      <div className="flex flex-col justify-center space-y-6">
+                      <div className="max-w-5xl mx-auto">
+                        <h1 className="text-7xl lg:text-8xl font-primary-medium leading-tight text-white mb-6">
+                        <div className="flex items-center justify-center gap-4 flex-wrap">
+                          Turn <span className="font-cardo font-bold italic">Excel</span>
+                          <a 
+                            href="#features" 
+                            className="w-24 h-16 bg-white/20 rounded-full backdrop-blur-sm border border-white/30 flex items-center justify-center transform transition-all duration-300 hover:scale-110 hover:bg-white/30 hover:border-white/50 cursor-pointer group"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                          >
+                          <img src={interactiveChartsImage} className="rounded-full w-20 h-14 object-cover transition-transform duration-300 group-hover:scale-105" />
+                          </a>
+                          <span className="font-cardo font-bold italic">files</span>
+                        </div>
+                        <div className="mt-2">
+                          <span className="bg-gradient-text bg-clip-text text-transparent animate-gradient">into Insights.</span>
+                        </div>
+                        </h1>
                       </div>
-                      <span className="font-bold italic">files</span>
+                      <div className="space-y-6">
+                        <p className="text-lg lg:text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+                        From raw spreadsheets to interactive dashboards, automated reports, and AI-powered recommendations — all in one powerful platform.
+                        </p>
+                        <div className="flex flex-wrap items-center justify-center gap-3 text-white/70">
+                        <span className="px-4 py-1 rounded-full bg-white/10 backdrop-blur-sm text-sm">Real-time Analysis</span>
+                        <span className="px-4 py-1 rounded-full bg-white/10 backdrop-blur-sm text-sm">Smart Visualization</span>
+                        <span className="px-4 py-1 rounded-full bg-white/10 backdrop-blur-sm text-sm">AI Insights</span>
+                        <span className="px-4 py-1 rounded-full bg-white/10 backdrop-blur-sm text-sm">Automated Reports</span>
+                        </div>
+                      </div>
+                      <div className="mt-8 flex gap-4 flex-col sm:flex-row justify-center">
+                        <Link 
+                        to="/register" 
+                        className="inline-flex items-center justify-center rounded-full px-8 py-4 text-lg font-primary-medium text-white shadow-sm transition duration-200 bg-jet-500 hover:bg-pigmentgreen-500"
+                        >
+                        Get Started
+                        </Link>
+                        <Link 
+                        to="/login" 
+                        className="inline-flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md px-8 py-4 text-lg font-primary-medium shadow-sm transition duration-200 text-white border border-white/30 hover:bg-white/30"
+                        >
+                        Login
+                        </Link>
+                      </div>
+                      </div>
                     </div>
-                    <div className="mt-2">
-                      <span className="bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 bg-clip-text text-transparent">into Insights.</span>
                     </div>
-                  </h1>
-                </div>
-                <p className="text-2xl lg:text-3xl font-medium text-white mt-4 max-w-2xl mx-auto">
-                  Upload. Analyze. Visualize.
-                </p>
-                <div className="mt-8 flex gap-4 flex-col sm:flex-row justify-center">
-                  <Link 
-                    to="/register" 
-                    className="inline-flex items-center justify-center rounded-full px-8 py-4 text-lg font-semibold text-white shadow-sm transition duration-200 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 hover:shadow-xl transform hover:scale-105"
-                  >
-                    Get Started
-                  </Link>
-                  <Link 
-                    to="/login" 
-                    className="inline-flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md px-8 py-4 text-lg font-semibold shadow-sm transition duration-200 text-white border border-white/30 hover:bg-white/30"
-                  >
-                    Login
-                  </Link>
-                </div>
-              </div>
-
-              {/* Stats Section */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-xl">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                  <div ref={addStatRef} className="text-center">
-                    <div className="text-4xl lg:text-5xl font-bold text-white mb-2">
-                      <span className="count-number bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 bg-clip-text text-transparent">500</span>
-                    </div>
-                    <div className="text-sm lg:text-base text-white/90 font-medium">Files Processed</div>
-                  </div>
-                  <div ref={addStatRef} className="text-center">
-                    <div className="text-4xl lg:text-5xl font-bold text-white mb-2">
-                      <span className="count-number bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 bg-clip-text text-transparent">98</span>
-                    </div>
-                    <div className="text-sm lg:text-base text-white/90 font-medium">Accuracy Rate</div>
-                  </div>
-                  <div ref={addStatRef} className="text-center">
-                    <div className="text-4xl lg:text-5xl font-bold text-white mb-2">
-                      <span className="count-number bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 bg-clip-text text-transparent">24</span>
-                    </div>
-                    <div className="text-sm lg:text-base text-white/90 font-medium">Processing Speed</div>
-                  </div>
-                  <div ref={addStatRef} className="text-center">
-                    <div className="text-4xl lg:text-5xl font-bold text-white mb-2">
-                      <span className="count-number bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 bg-clip-text text-transparent">15</span>
-                    </div>
-                    <div className="text-sm lg:text-base text-white/90 font-medium">Chart Types</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>        {/* Features Section */}
-        <section 
-          ref={addSectionRef}
-          id="features" 
-          className="parallax-bg py-20 relative bg-gradient-to-b from-jet-900 to-blackolive-900"
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center mb-20">
-              <h2 className="text-5xl lg:text-7xl font-bold text-white mb-6">
-                Powerful
-                <span className="bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 bg-clip-text text-transparent"> Features</span>
+                  </section>        {/* Features Section */}
+        <section ref={addSectionRef} id="features" className="py-20 relative bg-black">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-jet-900"></div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className="text-center mb-16">
+              <h2 className="section-heading text-5xl lg:text-7xl font-bold text-white mb-6">
+                Powerful Features
               </h2>
               <p className="text-xl lg:text-2xl text-white/90 mb-12 max-w-4xl mx-auto leading-relaxed">
                 Discover the comprehensive suite of tools designed to transform your Excel data into actionable insights with unparalleled ease and precision.
               </p>
             </div>
 
-            <div className="space-y-32">
+            <div className="space-y-20">
               {/* Feature 1 - Excel File Upload & Processing */}
               <div
                 ref={addFeatureRef}
-                className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 lg:p-16 shadow-xl border border-white/20"
+                className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-6 lg:p-12 shadow-xl border border-white/20 max-w-[95%] mx-auto"
               >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                   {/* Content */}
                   <div className="space-y-8">
                     <div>
                       <h3 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-                        Excel File Upload & Processing
+                        Upload & Processing
                       </h3>
                       <p className="text-xl text-white/90 leading-relaxed mb-8">
                         Seamlessly upload and process your Excel files with our secure, lightning-fast processing engine. Support for both .xls and .xlsx formats with advanced parsing capabilities.
@@ -433,7 +433,7 @@ const LandingPage = () => {
                     <div className="pt-4">
                       <Link
                         to="/register"
-                        className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                        className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200"
                       >
                         Try This Feature
                         <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,7 +450,7 @@ const LandingPage = () => {
                       <img
                         src={uploadExcelImage}
                         alt="Excel File Upload & Processing"
-                        className="relative w-full h-80 lg:h-96 object-cover rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
+                        className="relative w-full h-80 lg:h-96 object-cover rounded-2xl shadow-2xl transform hover:scale-[1.015] transition-transform duration-300"
                         loading="lazy"
                       />
                     </div>
@@ -461,7 +461,7 @@ const LandingPage = () => {
               {/* Feature 2 - Interactive Data Visualization */}
               <div
                 ref={addFeatureRef}
-                className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 lg:p-16 shadow-xl border border-white/20"
+                className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-6 lg:p-12 shadow-xl border border-white/20 max-w-[95%] mx-auto"
               >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center lg:grid-flow-col-dense">
                   {/* Content */}
@@ -502,7 +502,7 @@ const LandingPage = () => {
                     <div className="pt-4">
                       <Link
                         to="/register"
-                        className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                        className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200"
                       >
                         Try This Feature
                         <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -519,7 +519,7 @@ const LandingPage = () => {
                       <img
                         src={interactiveChartsImage}
                         alt="Interactive Data Visualization"
-                        className="relative w-full h-80 lg:h-96 object-cover rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
+                        className="relative w-full h-80 lg:h-96 object-cover rounded-2xl shadow-2xl transform hover:scale-[1.015] transition-transform duration-300"
                         loading="lazy"
                       />
                     </div>
@@ -530,7 +530,7 @@ const LandingPage = () => {
               {/* Feature 3 - AI-Powered Insights */}
               <div
                 ref={addFeatureRef}
-                className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 lg:p-16 shadow-xl border border-white/20"
+                className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-6 lg:p-12 shadow-xl border border-white/20 max-w-[95%] mx-auto"
               >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                   {/* Content */}
@@ -571,7 +571,7 @@ const LandingPage = () => {
                     <div className="pt-4">
                       <Link
                         to="/register"
-                        className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                        className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200"
                       >
                         Try This Feature
                         <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -588,7 +588,7 @@ const LandingPage = () => {
                       <img
                         src={insightsImage}
                         alt="AI-Powered Insights"
-                        className="relative w-full h-80 lg:h-96 object-cover rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
+                        className="relative w-full h-80 lg:h-96 object-cover rounded-2xl shadow-2xl transform hover:scale-[1.015] transition-transform duration-300"
                         loading="lazy"
                       />
                     </div>
@@ -597,42 +597,271 @@ const LandingPage = () => {
               </div>
             </div>
           </div>
-        </section>      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-jet-600 to-blackolive-600 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-jet-600/90 to-blackolive-600/90"></div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-          <div ref={ctaRef}>
-              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-                Ready to Transform Your Data?
+        </section>
+
+        {/* Security Section */}
+        <section className="py-24 relative overflow-hidden bg-gradient-to-b from-jet-900 via-jet-900 to-black">
+          <div className="absolute inset-0 bg-grid-white/5 opacity-30"></div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className="text-center mb-16">
+              <h2 className="section-heading text-5xl lg:text-7xl font-bold text-white mb-6">
+                Enterprise-Grade Security
               </h2>
-              <p className="text-xl text-white/90 mb-12 leading-relaxed">
-                Join thousands of professionals who trust our platform to turn their Excel files into powerful insights.
+              <p className="text-xl text-white/80 max-w-3xl mx-auto">
+                Your data security is our top priority. We implement industry-leading security measures to protect your sensitive information.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  to="/register"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                >
-                  Start Free Trial
-                </Link>
-                <Link
-                  to="/dashboard"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-white/20 backdrop-blur-md text-white font-semibold rounded-xl border border-white/30 hover:bg-white/30 transition-all duration-200"
-                >
-                  View Demo
-                </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div 
+                ref={(el) => (securityCardsRef.current[0] = el)}
+                className="group relative p-8 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 overflow-hidden"
+              >
+                <div className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition duration-300">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: "radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(34, 197, 94, 0.15), transparent 40%)",
+                    }}
+                  ></div>
+                </div>
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-2xl flex items-center justify-center mb-6">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-4">End-to-End Encryption</h3>
+                  <p className="text-white/70">Your data is encrypted in transit and at rest using industry-standard AES-256 encryption.</p>
+                </div>
+              </div>
+
+              <div 
+                ref={(el) => (securityCardsRef.current[1] = el)}
+                className="group relative p-8 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 overflow-hidden"
+              >
+                <div className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition duration-300">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: "radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(34, 197, 94, 0.15), transparent 40%)",
+                    }}
+                  ></div>
+                </div>
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-2xl flex items-center justify-center mb-6">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-4">SOC 2 Compliance</h3>
+                  <p className="text-white/70">We maintain SOC 2 Type II compliance, ensuring your data is handled with the highest security standards.</p>
+                </div>
+              </div>
+
+              <div 
+                ref={(el) => (securityCardsRef.current[2] = el)}
+                className="group relative p-8 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 overflow-hidden"
+              >
+                <div className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition duration-300">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: "radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(34, 197, 94, 0.15), transparent 40%)",
+                    }}
+                  ></div>
+                </div>
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-2xl flex items-center justify-center mb-6">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-4">Regular Audits</h3>
+                  <p className="text-white/70">We conduct regular security audits and penetration testing to ensure your data remains protected.</p>
+                </div>
               </div>
             </div>
           </div>
         </section>
-      </main>      <footer className="bg-jet-50 border-t border-jet-200">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="text-center text-jet-500 text-sm">
-            &copy; {new Date().getFullYear()} Excel Analytics Platform. All rights reserved.
+
+        {/* Contact Section */}
+        <section className="min-h-screen py-32 relative overflow-hidden bg-gradient-to-b from-black via-black to-jet-900">
+          {/* Background Container with Spectral.jpg */}
+          <div className="absolute inset-0">
+            <img 
+              src={spectralImage} 
+              alt="Spectral Background" 
+              className="w-full h-full object-cover opacity-30"
+              style={{
+                transform: 'scale(1.1)',
+                transition: 'transform 0.5s ease-out'
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-jet-900 opacity-90"></div>
           </div>
-        </div>
-      </footer>
-    </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className="max-w-3xl mx-auto text-center mb-20">
+              <h2 className="section-heading text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight">
+                Let's Start a Conversation
+              </h2>
+              <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
+                Have questions about our Excel Analytics Platform? We're here to help you transform your data into actionable insights.
+              </p>
+            </div>
+
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white/[0.02] backdrop-blur-sm rounded-3xl p-8 lg:p-10 border border-white/5 shadow-2xl">
+                <form className="space-y-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="relative group">
+                      <input 
+                        type="text" 
+                        id="firstName"
+                        className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                        placeholder="First Name"
+                        required
+                      />
+                      <label 
+                        htmlFor="firstName" 
+                        className="absolute left-4 -top-2 text-xs text-white/50 transition-all duration-300 
+                          peer-placeholder-shown:text-base peer-placeholder-shown:text-white/30 peer-placeholder-shown:top-3 
+                          peer-focus:-top-2 peer-focus:text-xs peer-focus:text-pigmentgreen-500"
+                      >
+                        First Name
+                      </label>
+                      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/10"></div>
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pigmentgreen-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+                    </div>
+
+                    <div className="relative group">
+                      <input 
+                        type="text" 
+                        id="lastName"
+                        className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                        placeholder="Last Name"
+                        required
+                      />
+                      <label 
+                        htmlFor="lastName" 
+                        className="absolute left-4 -top-2 text-xs text-white/50 transition-all duration-300 
+                          peer-placeholder-shown:text-base peer-placeholder-shown:text-white/30 peer-placeholder-shown:top-3 
+                          peer-focus:-top-2 peer-focus:text-xs peer-focus:text-pigmentgreen-500"
+                      >
+                        Last Name
+                      </label>
+                      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/10"></div>
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pigmentgreen-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    <input 
+                      type="email" 
+                      id="email"
+                      className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                      placeholder="Email Address"
+                      required
+                    />
+                    <label 
+                      htmlFor="email" 
+                      className="absolute left-4 -top-2 text-xs text-white/50 transition-all duration-300 
+                        peer-placeholder-shown:text-base peer-placeholder-shown:text-white/30 peer-placeholder-shown:top-3 
+                        peer-focus:-top-2 peer-focus:text-xs peer-focus:text-pigmentgreen-500"
+                    >
+                      Email Address
+                    </label>
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/10"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pigmentgreen-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+                  </div>
+
+                  <div className="relative group">
+                    <input 
+                      type="text" 
+                      id="subject"
+                      className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                      placeholder="Subject"
+                      required
+                    />
+                    <label 
+                      htmlFor="subject" 
+                      className="absolute left-4 -top-2 text-xs text-white/50 transition-all duration-300 
+                        peer-placeholder-shown:text-base peer-placeholder-shown:text-white/30 peer-placeholder-shown:top-3 
+                        peer-focus:-top-2 peer-focus:text-xs peer-focus:text-pigmentgreen-500"
+                    >
+                      Subject
+                    </label>
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/10"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pigmentgreen-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+                  </div>
+
+                  <div className="relative group">
+                    <textarea 
+                      id="message"
+                      rows="4" 
+                      className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300 resize-none" 
+                      placeholder="Message"
+                      required
+                    ></textarea>
+                    <label 
+                      htmlFor="message" 
+                      className="absolute left-4 -top-2 text-xs text-white/50 transition-all duration-300 
+                        peer-placeholder-shown:text-base peer-placeholder-shown:text-white/30 peer-placeholder-shown:top-3 
+                        peer-focus:-top-2 peer-focus:text-xs peer-focus:text-pigmentgreen-500"
+                    >
+                      Message
+                    </label>
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/10"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pigmentgreen-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+                  </div>
+
+                  <div>
+                    <button 
+                      type="submit" 
+                      className="w-full py-4 bg-gradient-to-r from-pigmentgreen-500/80 to-malachite-500/80 text-white font-semibold rounded-xl hover:from-pigmentgreen-500 hover:to-malachite-500 transform hover:scale-[1.01] transition-all duration-300 relative group overflow-hidden"
+                    >
+                      <span className="relative z-10">Send Message</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-malachite-500 to-pigmentgreen-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-20 relative overflow-hidden bg-gradient-to-b from-jet-900 via-jet-900 to-black">
+          <div className="absolute inset-0 bg-gradient-to-r from-jet-900/90 to-jet-900/90"></div>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+            <div ref={ctaRef}>
+                <h2 className="section-heading text-4xl lg:text-5xl font-bold text-white mb-6">
+                  Ready to Transform Your Data?
+                </h2>
+                <p className="text-xl text-white/90 mb-12 leading-relaxed">
+                  Join thousands of professionals who trust our platform to turn their Excel files into powerful insights.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200"
+                  >
+                    Start Free Trial
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center justify-center px-8 py-4 bg-white/20 backdrop-blur-md text-white font-semibold rounded-full border border-white/30 hover:bg-white/30 transition-all duration-200"
+                  >
+                    View Demo
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </div>
   );
 };
 
