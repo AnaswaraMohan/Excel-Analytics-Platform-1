@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../utils/auth';
 import { toast } from 'react-toastify';
 
@@ -120,6 +120,20 @@ const Dashboard = () => {
               
               {/* Navigation Bar - now inline with logo - Dashboard removed */}
               <nav className="flex space-x-8">
+                <button 
+                  className={`py-4 px-2 border-b-2 font-medium text-sm ${activeTab === 0 
+                    ? 'border-malachite-600 text-malachite-600' 
+                    : 'border-transparent text-blackolive-500 hover:text-pigmentgreen-600 hover:border-malachite-300'}`}
+                  onClick={() => setActiveTab(0)}
+                >
+                  Overview
+                </button>
+                <Link 
+                  to="/features"
+                  className="py-4 px-2 border-b-2 border-transparent text-blackolive-500 hover:text-pigmentgreen-600 hover:border-malachite-300 font-medium text-sm"
+                >
+                  Features
+                </Link>
                 <button 
                   className={`py-4 px-2 border-b-2 font-medium text-sm ${activeTab === 1 
                     ? 'border-malachite-600 text-malachite-600' 

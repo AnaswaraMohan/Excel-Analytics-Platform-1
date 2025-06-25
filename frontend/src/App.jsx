@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
+import Features from './pages/Features';
 import Profile from './pages/Profile';
 import ExcelUpload from './pages/ExcelUpload';
 import PrivateRoute from './components/PrivateRoute';
@@ -17,12 +18,13 @@ function App() {
   return (
     <ChakraProvider>
       <Router>
-        <div className="App font-dm-regular antialiased">
+        <div className="App font-primary antialiased">
           <Routes>
             <Route 
               path="/" 
               element={<LandingPage />}
             />
+            <Route path="/features" element={<Features />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route 

@@ -6,16 +6,29 @@ export default {
   ],  theme: {
     extend: {
       fontFamily: {
-        'sans': ['DM Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
-        'dm-sans': ['DM Sans', 'sans-serif'],
+        'sans': ['Bricolage Grotesque', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
+        'primary': ['Bricolage Grotesque', 'sans-serif'],
+        'secondary': ['Albert Sans', 'sans-serif'],
+        'cardo': ['Cardo', 'serif'],
       },
       animation: {
         'fadeIn': 'fadeIn 0.5s ease-in-out',
+        'gradient': 'gradient 6s ease infinite',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: 0, transform: 'translateY(10px)' },
           '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        gradient: {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': '0% 50%'
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': '100% 50%'
+          }
         }
       },
       boxShadow: {
@@ -28,6 +41,7 @@ export default {
         'gradient-green-subtle': 'linear-gradient(135deg, #f0f9f4, #dcfce7)',
         'gradient-hero': 'linear-gradient(to bottom right, #f0f9f4, #ffffff)',
         'gradient-dark': 'linear-gradient(135deg, #282B28, #374434, #3A9647)',
+        'gradient-text': 'linear-gradient(to right, #3A9647, #4ade80, #86efac, #3A9647)',
       },
       colors: {
         // Green theme palette

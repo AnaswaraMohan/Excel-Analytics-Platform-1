@@ -1,40 +1,54 @@
-/* DM Sans Font Faces */
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/Fonts/DMSans-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
+/* Primary Font (Bricolage Grotesque) utility classes */
+.font-primary {
+  font-family: 'Bricolage Grotesque', sans-serif;
 }
 
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/Fonts/DMSans-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
+.font-primary-light {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 200;
 }
 
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/Fonts/DMSans-SemiBold.ttf') format('truetype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Font utility classes */
-.font-dm-regular {
-  font-family: 'DM Sans', sans-serif;
+.font-primary-regular {
+  font-family: 'Bricolage Grotesque', sans-serif;
   font-weight: 400;
 }
 
-.font-dm-medium {
-  font-family: 'DM Sans', sans-serif;
+.font-primary-medium {
+  font-family: 'Bricolage Grotesque', sans-serif;
   font-weight: 500;
 }
 
-.font-dm-semibold {
-  font-family: 'DM Sans', sans-serif;
+.font-primary-bold {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+}
+
+/* Secondary Font (Albert Sans) utility classes */
+.font-secondary {
+  font-family: 'Albert Sans', sans-serif;
+}
+
+.font-secondary-thin {
+  font-family: 'Albert Sans', sans-serif;
+  font-weight: 100;
+}
+
+.font-secondary-regular {
+  font-family: 'Albert Sans', sans-serif;
+  font-weight: 400;
+}
+
+.font-secondary-medium {
+  font-family: 'Albert Sans', sans-serif;
+  font-weight: 500;
+}
+
+.font-secondary-semibold {
+  font-family: 'Albert Sans', sans-serif;
   font-weight: 600;
+}
+
+.font-secondary-bold {
+  font-family: 'Albert Sans', sans-serif;
+  font-weight: 700;
 }

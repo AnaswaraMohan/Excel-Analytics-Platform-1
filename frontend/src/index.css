@@ -1,4 +1,7 @@
-/* Import custom font utilities first */
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Cardo:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* Import custom font utilities */
 @import './styles/fonts.css';
 
 @tailwind base;
