@@ -34,3 +34,7 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Exclude cursor and user input files
+.cursor
+userinput.py
