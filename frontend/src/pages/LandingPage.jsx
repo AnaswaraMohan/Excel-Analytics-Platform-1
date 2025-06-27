@@ -8,9 +8,57 @@ import insightsImage from '../assets/Insights.jpg';
 import moonImage from '../assets/Moon.png';
 import spectralImage from '../assets/Spectral.jpg';
 import Footer from '../components/Footer';
+import Modal from '../components/Modal';
+import Login from './Login';
+import Register from './Register';
+import Accordion from '../components/Accordion';
 
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger);
+
+// Spotlight effect hook
+function useSpotlight(ref) {
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      ref.current.style.setProperty('--mouse-x', `${x}px`);
+      ref.current.style.setProperty('--mouse-y', `${y}px`);
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [ref]);
+}
+
+// SpotlightCard wrapper
+function SpotlightCard({ className = '', children, ...props }) {
+  const cardRef = useRef(null);
+  useSpotlight(cardRef);
+  return (
+    <div
+      ref={cardRef}
+      className={`relative group ${className}`}
+      style={{
+        '--mouse-x': '50%',
+        '--mouse-y': '50%',
+      }}
+      {...props}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition duration-300 z-10"
+        style={{
+          background:
+            'radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(34, 197, 94, 0.15), transparent 40%)',
+        }}
+      ></div>
+      {children}
+    </div>
+  );
+}
 
 const LandingPage = () => {
   const featureRefs = useRef([]);
@@ -19,6 +67,11 @@ const LandingPage = () => {
   const ctaRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const securityCardsRef = useRef([]);
+  const [activeModal, setActiveModal] = useState(null);
+
+  const handleSwitchModal = (modal) => {
+    setActiveModal(modal);
+  };
 
   useEffect(() => {
     // Enable GSAP performance optimizations
@@ -296,8 +349,8 @@ const LandingPage = () => {
           <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-full shadow-2xl h-16 hover:bg-white/15 transition-all duration-300">
             <div className="flex items-center h-full px-6 space-x-4">
               <div className="hidden md:flex items-center space-x-4">
-                <Link to="/login" className="text-white/90 font-medium hover:text-white transition-colors duration-200">Login</Link>
-                <Link to="/register" className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full transition duration-300 font-semibold backdrop-blur-md border border-white/30">Sign Up</Link>
+                <button onClick={() => setActiveModal('login')} className="text-white/90 font-medium hover:text-white transition-colors duration-200">Login</button>
+                <button onClick={() => setActiveModal('register')} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full transition duration-300 font-semibold backdrop-blur-md border border-white/30">Sign Up</button>
               </div>
               <div className="md:hidden flex items-center">
                 <button type="button" className="text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 rounded-full p-1">
@@ -359,18 +412,18 @@ const LandingPage = () => {
                         </div>
                       </div>
                       <div className="mt-8 flex gap-4 flex-col sm:flex-row justify-center">
-                        <Link 
-                        to="/register" 
+                        <button 
+                        onClick={() => setActiveModal('register')} 
                         className="inline-flex items-center justify-center rounded-full px-8 py-4 text-lg font-primary-medium text-white shadow-sm transition duration-200 bg-jet-500 hover:bg-pigmentgreen-500"
                         >
                         Get Started
-                        </Link>
-                        <Link 
-                        to="/login" 
+                        </button>
+                        <button 
+                        onClick={() => setActiveModal('login')} 
                         className="inline-flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md px-8 py-4 text-lg font-primary-medium shadow-sm transition duration-200 text-white border border-white/30 hover:bg-white/30"
                         >
                         Login
-                        </Link>
+                        </button>
                       </div>
                       </div>
                     </div>
@@ -390,7 +443,7 @@ const LandingPage = () => {
 
             <div className="space-y-20">
               {/* Feature 1 - Excel File Upload & Processing */}
-              <div
+              <SpotlightCard
                 ref={addFeatureRef}
                 className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-6 lg:p-12 shadow-xl border border-white/20 max-w-[95%] mx-auto"
               >
@@ -456,10 +509,10 @@ const LandingPage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </SpotlightCard>
 
               {/* Feature 2 - Interactive Data Visualization */}
-              <div
+              <SpotlightCard
                 ref={addFeatureRef}
                 className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-6 lg:p-12 shadow-xl border border-white/20 max-w-[95%] mx-auto"
               >
@@ -525,10 +578,10 @@ const LandingPage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </SpotlightCard>
 
               {/* Feature 3 - AI-Powered Insights */}
-              <div
+              <SpotlightCard
                 ref={addFeatureRef}
                 className="feature-card bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-6 lg:p-12 shadow-xl border border-white/20 max-w-[95%] mx-auto"
               >
@@ -594,7 +647,7 @@ const LandingPage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </SpotlightCard>
             </div>
           </div>
         </section>
@@ -603,7 +656,7 @@ const LandingPage = () => {
         <section className="py-24 relative overflow-hidden bg-gradient-to-b from-jet-900 via-jet-900 to-black">
           <div className="absolute inset-0 bg-grid-white/5 opacity-30"></div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="text-center mb-16">
+            <div className="text-center mb-20">
               <h2 className="section-heading text-5xl lg:text-7xl font-bold text-white mb-6">
                 Enterprise-Grade Security
               </h2>
@@ -613,7 +666,7 @@ const LandingPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div 
+              <SpotlightCard
                 ref={(el) => (securityCardsRef.current[0] = el)}
                 className="group relative p-8 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 overflow-hidden"
               >
@@ -634,9 +687,9 @@ const LandingPage = () => {
                   <h3 className="text-2xl font-bold text-white mb-4">End-to-End Encryption</h3>
                   <p className="text-white/70">Your data is encrypted in transit and at rest using industry-standard AES-256 encryption.</p>
                 </div>
-              </div>
+              </SpotlightCard>
 
-              <div 
+              <SpotlightCard
                 ref={(el) => (securityCardsRef.current[1] = el)}
                 className="group relative p-8 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 overflow-hidden"
               >
@@ -657,9 +710,9 @@ const LandingPage = () => {
                   <h3 className="text-2xl font-bold text-white mb-4">SOC 2 Compliance</h3>
                   <p className="text-white/70">We maintain SOC 2 Type II compliance, ensuring your data is handled with the highest security standards.</p>
                 </div>
-              </div>
+              </SpotlightCard>
 
-              <div 
+              <SpotlightCard
                 ref={(el) => (securityCardsRef.current[2] = el)}
                 className="group relative p-8 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 overflow-hidden"
               >
@@ -680,8 +733,39 @@ const LandingPage = () => {
                   <h3 className="text-2xl font-bold text-white mb-4">Regular Audits</h3>
                   <p className="text-white/70">We conduct regular security audits and penetration testing to ensure your data remains protected.</p>
                 </div>
-              </div>
+              </SpotlightCard>
             </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-24 bg-black">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="section-heading text-5xl lg:text-7xl font-bold text-white mb-6">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-xl text-white/80 max-w-3xl mx-auto">
+                Have questions? We've got answers. If you can't find what you're looking for, feel free to contact us.
+              </p>
+            </div>
+            <SpotlightCard className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
+              <Accordion title="What types of Excel files can I upload?">
+                You can upload both .xls and .xlsx file formats. Our platform uses an advanced parsing engine to handle a wide variety of Excel structures, including multiple sheets, complex formulas, and large datasets.
+              </Accordion>
+              <Accordion title="How secure is my data?">
+                Data security is our highest priority. We use end-to-end AES-256 encryption for data in transit and at rest. Our platform is SOC 2 compliant, and we conduct regular third-party security audits to ensure your data is always protected.
+              </Accordion>
+              <Accordion title="Can I customize the dashboards and visualizations?">
+                Absolutely. Our platform offers a highly interactive and customizable experience. You can choose from various chart types, apply filters, change color schemes, and arrange your dashboards to best tell your data's story.
+              </Accordion>
+              <Accordion title="Is there a limit to the file size I can upload?">
+                Our standard plans support Excel files up to 100MB. For enterprise clients with larger needs, we offer custom solutions with increased capacity and dedicated processing resources. Please contact our sales team for more information.
+              </Accordion>
+              <Accordion title="Do you offer a free trial?">
+                Yes, we offer a 14-day free trial with full access to all our features. No credit card is required to get started. Sign up today to see how our platform can transform your data analytics workflow.
+              </Accordion>
+            </SpotlightCard>
           </div>
         </section>
 
@@ -706,20 +790,20 @@ const LandingPage = () => {
               <h2 className="section-heading text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight">
                 Let's Start a Conversation
               </h2>
-              <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg md:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
                 Have questions about our Excel Analytics Platform? We're here to help you transform your data into actionable insights.
               </p>
             </div>
 
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-white/[0.02] backdrop-blur-sm rounded-3xl p-8 lg:p-10 border border-white/5 shadow-2xl">
+            <div className="max-w-3xl mx-auto">
+              <SpotlightCard className="bg-white/[0.02] backdrop-blur-sm rounded-3xl p-8 lg:p-10 border border-white/5 shadow-2xl">
                 <form className="space-y-8">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     <div className="relative group">
                       <input 
                         type="text" 
                         id="firstName"
-                        className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                        className="peer w-full px-4 py-3 bg-transparent text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
                         placeholder="First Name"
                         required
                       />
@@ -739,7 +823,7 @@ const LandingPage = () => {
                       <input 
                         type="text" 
                         id="lastName"
-                        className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                        className="peer w-full px-4 py-3 bg-transparent text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
                         placeholder="Last Name"
                         required
                       />
@@ -760,7 +844,7 @@ const LandingPage = () => {
                     <input 
                       type="email" 
                       id="email"
-                      className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                      className="peer w-full px-4 py-3 bg-transparent text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
                       placeholder="Email Address"
                       required
                     />
@@ -780,7 +864,7 @@ const LandingPage = () => {
                     <input 
                       type="text" 
                       id="subject"
-                      className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
+                      className="peer w-full px-4 py-3 bg-transparent text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300" 
                       placeholder="Subject"
                       required
                     />
@@ -800,7 +884,7 @@ const LandingPage = () => {
                     <textarea 
                       id="message"
                       rows="4" 
-                      className="peer w-full px-4 py-3 bg-transparent border-b border-white/10 text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300 resize-none" 
+                      className="peer w-full px-4 py-3 bg-transparent text-white placeholder-transparent focus:ring-0 focus:border-0 focus:outline-none transition-colors duration-300 resize-none" 
                       placeholder="Message"
                       required
                     ></textarea>
@@ -826,41 +910,30 @@ const LandingPage = () => {
                     </button>
                   </div>
                 </form>
-              </div>
+              </SpotlightCard>
             </div>
           </div>
         </section>
-
-        {/* CTA Section */}
-        <section className="py-20 relative overflow-hidden bg-gradient-to-b from-jet-900 via-jet-900 to-black">
-          <div className="absolute inset-0 bg-gradient-to-r from-jet-900/90 to-jet-900/90"></div>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-            <div ref={ctaRef}>
-                <h2 className="section-heading text-4xl lg:text-5xl font-bold text-white mb-6">
-                  Ready to Transform Your Data?
-                </h2>
-                <p className="text-xl text-white/90 mb-12 leading-relaxed">
-                  Join thousands of professionals who trust our platform to turn their Excel files into powerful insights.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200"
-                  >
-                    Start Free Trial
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    className="inline-flex items-center justify-center px-8 py-4 bg-white/20 backdrop-blur-md text-white font-semibold rounded-full border border-white/30 hover:bg-white/30 transition-all duration-200"
-                  >
-                    View Demo
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
         </main>
-        <Footer />
+        <Footer variant="dark" />
+
+      <Modal 
+        isOpen={activeModal === 'login'} 
+        onClose={() => setActiveModal(null)}
+        title="Welcome Back"
+        subtitle="Enter your credentials to access your account."
+      >
+        <Login isModal={true} onSwitchModal={() => handleSwitchModal('register')} />
+      </Modal>
+
+      <Modal 
+        isOpen={activeModal === 'register'} 
+        onClose={() => setActiveModal(null)}
+        title="Create an Account"
+        subtitle="Start your journey with our platform today."
+      >
+        <Register isModal={true} onSwitchModal={() => handleSwitchModal('login')} />
+      </Modal>
       </div>
   );
 };
