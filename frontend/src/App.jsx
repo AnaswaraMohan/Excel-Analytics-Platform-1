@@ -4,8 +4,6 @@ import { ChakraProvider } from '@chakra-ui/react';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
-import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
 import Profile from './pages/Profile';
@@ -23,8 +21,6 @@ function App() {
               path="/" 
               element={<LandingPage />}
             />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
             <Route 
               path="/dashboard" 
               element={

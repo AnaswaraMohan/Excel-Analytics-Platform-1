@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -9,9 +9,9 @@ import moonImage from '../assets/Moon.png';
 import spectralImage from '../assets/Spectral.jpg';
 import Footer from '../components/Footer';
 import Modal from '../components/Modal';
+import Accordion from '../components/Accordion';
 import Login from './Login';
 import Register from './Register';
-import Accordion from '../components/Accordion';
 
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger);
@@ -68,6 +68,7 @@ const LandingPage = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const securityCardsRef = useRef([]);
   const [activeModal, setActiveModal] = useState(null);
+  const navigate = useNavigate();
 
   const handleSwitchModal = (modal) => {
     setActiveModal(modal);
@@ -923,7 +924,7 @@ const LandingPage = () => {
         title="Welcome Back"
         subtitle="Enter your credentials to access your account."
       >
-        <Login isModal={true} onSwitchModal={() => handleSwitchModal('register')} />
+        <Login onSwitchModal={() => setActiveModal('register')} onSuccess={() => navigate('/dashboard')} />
       </Modal>
 
       <Modal 
@@ -932,7 +933,7 @@ const LandingPage = () => {
         title="Create an Account"
         subtitle="Start your journey with our platform today."
       >
-        <Register isModal={true} onSwitchModal={() => handleSwitchModal('login')} />
+        <Register onSwitchModal={() => setActiveModal('login')} onSuccess={() => navigate('/dashboard')} />
       </Modal>
       </div>
   );

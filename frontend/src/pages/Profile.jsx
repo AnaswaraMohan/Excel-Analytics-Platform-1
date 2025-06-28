@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../utils/auth';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
+import { gsap } from 'gsap';
 import { 
   Box, 
   Heading, 
@@ -46,6 +47,49 @@ import {
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff, FiEdit, FiSave, FiX } from 'react-icons/fi';
 
+// Spotlight effect hook (from Dashboard/LandingPage)
+function useSpotlight(ref) {
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      ref.current.style.setProperty('--mouse-x', `${x}px`);
+      ref.current.style.setProperty('--mouse-y', `${y}px`);
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [ref]);
+}
+
+function SpotlightCard({ className = '', children, ...props }) {
+  const cardRef = useRef(null);
+  useSpotlight(cardRef);
+  return (
+    <div
+      ref={cardRef}
+      className={`relative group ${className}`}
+      style={{
+        '--mouse-x': '50%',
+        '--mouse-y': '50%',
+      }}
+      {...props}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition duration-300 z-10"
+        style={{
+          background:
+            'radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(34, 197, 94, 0.15), transparent 40%)',
+        }}
+      ></div>
+      {children}
+    </div>
+  );
+}
+
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,9 +102,11 @@ const Profile = () => {
   const [confirmDelete, setConfirmDelete] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const deleteInputRef = useRef();
+  const profileRef = useRef(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -106,10 +152,16 @@ const Profile = () => {
     fetchUserProfile();
   }, []);
 
+  useEffect(() => {
+    if (!isLoading && profileRef.current) {
+      gsap.fromTo(profileRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, ease: 'power3.out' });
+    }
+  }, [isLoading]);
+
   const handleLogout = () => {
     authService.logout();
     toast.success('Successfully logged out');
-    navigate('/login');
+    navigate('/');
   };
   
   const handleToggleNotifications = () => {
@@ -186,6 +238,7 @@ const Profile = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const updateProfile = async () => {
     if (!validatePersonalInfo()) return;
     
@@ -249,15 +302,12 @@ const Profile = () => {
     
     setIsSubmitting(true);
     try {
-      // Use the auth service to delete account
       await authService.deleteAccount();
-      
-      onClose();
+      setShowDeleteModal(false);
       toast.success('Account deleted successfully');
       authService.logout();
-      navigate('/login');
+      navigate('/');
     } catch (error) {
-      console.error('Delete account error:', error);
       toast.error(error.response?.data?.message || 'Failed to delete account');
     } finally {
       setIsSubmitting(false);
@@ -275,15 +325,9 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <Flex minH="100vh" bg="gray.50" align="center" justify="center">
-        <Box 
-          p={8} 
-          position="relative"
-          borderRadius="md"
-        >
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </Box>
-      </Flex>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-pigmentgreen-500" />
+      </div>
     );
   }
   
@@ -309,435 +353,195 @@ const Profile = () => {
     }
   };
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      <Grid templateColumns={{ base: "1fr", md: "1fr 3fr" }} gap={8}>
-        {/* Left Column - User Summary Card */}
-        <GridItem>
-          <Card bg={bgColor} shadow="md" borderRadius="lg" overflow="hidden" borderWidth="1px" borderColor={borderColor}>
-            <CardHeader pb={0}>
-              <Box textAlign="center" pt={4}>
-                <Avatar 
-                  size="2xl" 
-                  name={user?.name}
-                  bg="blue.500"
-                  color="white"
-                  mb={3}
-                />
-                <Heading as="h3" size="md" mb={1}>{user?.name}</Heading>
-                {user?.role && (
-                  <Badge 
-                    colorScheme={user?.role === 'admin' ? 'purple' : 'blue'}
-                    fontSize="sm"
-                    px={2}
-                    py={1}
-                    borderRadius="full"
-                  >
-                    {user.role}
-                  </Badge>
+    <div ref={profileRef} className="min-h-screen bg-black flex flex-col items-center pt-24 pb-16 px-4">
+      {/* Profile Card */}
+      <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20 flex flex-col items-center md:items-start">
+          <div className="w-28 h-28 rounded-full bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 flex items-center justify-center border-4 border-white/10 shadow-lg mb-4">
+            <span className="text-white font-bold text-4xl select-none">{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
+          </div>
+          <div className="text-center md:text-left w-full">
+            <h2 className="text-2xl font-bold text-white mb-1">{user?.name}</h2>
+            {user?.role && (
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 ${user.role === 'admin' ? 'bg-purple-600/80 text-white' : 'bg-pigmentgreen-600/80 text-white'}`}>{user.role}</span>
+            )}
+            <div className="text-white/70 text-sm mb-2">{formatJoinedDate()}</div>
+            <div className="flex flex-col gap-2 mt-4">
+              <button onClick={handleLogout} className="w-full py-2 rounded-xl bg-gradient-to-r from-red-500 to-pigmentgreen-500 text-white font-semibold shadow-lg hover:from-red-600 hover:to-pigmentgreen-600 transition-all">Sign Out</button>
+              <Link to="/dashboard" className="w-full block">
+                <button className="w-full py-2 rounded-xl bg-white/10 text-white/80 font-semibold shadow hover:bg-white/20 transition-all mt-2">Back to Dashboard</button>
+              </Link>
+            </div>
+          </div>
+        </SpotlightCard>
+        {/* Settings Tabs */}
+        <div className="md:col-span-2 flex flex-col gap-8">
+          {/* Tabs */}
+          <div className="flex gap-2 mb-4">
+            {['Personal Info', 'Security', 'Danger Zone'].map((tab, idx) => (
+              <button
+                key={tab}
+                onClick={() => setTabIndex(idx)}
+                className={`px-6 py-3 rounded-full font-semibold text-sm transition-all duration-200 border-2 ${tabIndex === idx ? 'bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white border-pigmentgreen-500 shadow-lg' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          {/* Tab Panels */}
+          <div className="w-full">
+            {/* Personal Info Tab */}
+            {tabIndex === 0 && (
+              <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-white/20">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-white">Personal Information</h3>
+                  {!editMode ? (
+                    <button onClick={() => setEditMode(true)} className="px-4 py-2 rounded-lg bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold shadow hover:from-pigmentgreen-600 hover:to-malachite-600 transition-all">Edit</button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={cancelEdit} className="px-4 py-2 rounded-lg bg-white/10 text-white/80 font-semibold shadow hover:bg-white/20 transition-all">Cancel</button>
+                      <button onClick={updateProfile} disabled={isSubmitting} className="px-4 py-2 rounded-lg bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold shadow hover:from-pigmentgreen-600 hover:to-malachite-600 transition-all disabled:opacity-60">{isSubmitting ? 'Saving...' : 'Save'}</button>
+                    </div>
+                  )}
+                </div>
+                {!editMode ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="text-xs text-white/50 uppercase font-semibold">Full Name</div>
+                      <div className="text-base text-white font-medium mt-1">{user?.name}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/50 uppercase font-semibold">Display Name</div>
+                      <div className="text-base text-white font-medium mt-1">{formData.displayName}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/50 uppercase font-semibold">Email Address</div>
+                      <div className="flex items-center mt-1">
+                        <span className="text-base text-white font-medium">
+                          {hideEmail ? `${user?.email.substring(0, 3)}****${user?.email.substring(user?.email.lastIndexOf('@'))}` : user?.email}
+                        </span>
+                        <button onClick={() => setHideEmail(!hideEmail)} className="ml-3 px-2 py-1 rounded bg-white/10 text-xs text-white/70 hover:bg-white/20 transition-all">{hideEmail ? 'Show' : 'Hide'}</button>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/50 uppercase font-semibold">Member Since</div>
+                      <div className="text-base text-white font-medium mt-1">{formatJoinedDate()}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-white/50 font-semibold">Full Name</label>
+                      <input name="name" value={formData.name} onChange={handleInputChange} className="px-4 py-2 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-pigmentgreen-500" placeholder="Enter your full name" />
+                      {errors.name && <div className="text-xs text-red-400 mt-1">{errors.name}</div>}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-white/50 font-semibold">Display Name</label>
+                      <input name="displayName" value={formData.displayName} onChange={handleInputChange} className="px-4 py-2 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-pigmentgreen-500" placeholder="Enter your display name" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-white/50 font-semibold">Email Address</label>
+                      <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="px-4 py-2 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-pigmentgreen-500" placeholder="Enter your email address" />
+                      {errors.email && <div className="text-xs text-red-400 mt-1">{errors.email}</div>}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-white/50 font-semibold">Email Visibility</label>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={!hideEmail} onChange={() => setHideEmail(!hideEmail)} className="accent-pigmentgreen-500 w-4 h-4" />
+                        <span className="text-xs text-white/60">Show email on profile</span>
+                      </div>
+                    </div>
+                  </form>
                 )}
-                
-                <Text mt={3} fontSize="sm" color={mutedTextColor}>
-                  {formatJoinedDate()}
-                </Text>
-              </Box>
-            </CardHeader>
-            
-            <CardFooter pt={4} pb={4}>
-              <Button 
-                variant="outline" 
-                colorScheme="red" 
-                size="md" 
-                width="full"
-                onClick={handleLogout}
-              >
-                Sign Out
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Box mt={4} textAlign="center">
-            <Link to="/dashboard">
-              <Button 
-                variant="ghost" 
-                colorScheme="blue" 
-                size="sm"
-                leftIcon={
-                  <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                }
-              >
-                Back to Dashboard
-              </Button>
-            </Link>
-          </Box>
-        </GridItem>
-
-        {/* Right Column - Tab-based Settings */}
-        <GridItem>
-          <Card bg={bgColor} shadow="md" borderRadius="lg" overflow="hidden" borderWidth="1px" borderColor={borderColor}>
-            <CardHeader borderBottomWidth="1px" borderColor={borderColor} bg="gray.50">
-              <Heading as="h3" size="md">Account Settings</Heading>
-            </CardHeader>
-            
-            <CardBody p={0}>
-              <Tabs isFitted variant="enclosed" index={tabIndex} onChange={setTabIndex}>
-                <TabList mb={0} borderBottom="1px" borderColor={borderColor}>
-                  <Tab 
-                    _selected={{ color: 'blue.600', borderBottom: '2px solid', borderColor: 'blue.600' }}
-                    py={4}
-                    fontWeight="medium"
-                  >
-                    Personal Information
-                  </Tab>
-                  <Tab 
-                    _selected={{ color: 'blue.600', borderBottom: '2px solid', borderColor: 'blue.600' }}
-                    py={4}
-                    fontWeight="medium"
-                  >
-                    Security
-                  </Tab>
-                  <Tab 
-                    _selected={{ color: 'blue.600', borderBottom: '2px solid', borderColor: 'blue.600' }}
-                    py={4}
-                    fontWeight="medium"
-                  >
-                    Danger Zone
-                  </Tab>
-                </TabList>
-
-                <TabPanels>
-                  {/* Tab 1: Personal Information */}
-                  <TabPanel p={6}>
-                    <Box className="bg-white rounded-lg">
-                      <Flex justifyContent="space-between" alignItems="center" mb={6}>
-                        <Heading as="h4" size="md" fontWeight="semibold">Personal Information</Heading>
-                        {!editMode ? (
-                          <Button 
-                            size="sm" 
-                            colorScheme="blue" 
-                            variant="outline"
-                            leftIcon={<Icon as={FiEdit} />}
-                            onClick={() => setEditMode(true)}
-                          >
-                            Edit
-                          </Button>
-                        ) : (
-                          <Flex gap={2}>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              leftIcon={<Icon as={FiX} />}
-                              onClick={cancelEdit}
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              colorScheme="blue"
-                              leftIcon={<Icon as={FiSave} />}
-                              onClick={updateProfile}
-                              isLoading={isSubmitting}
-                            >
-                              Save
-                            </Button>
-                          </Flex>
-                        )}
-                      </Flex>
-
-                      {!editMode ? (
-                        <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
-                          <Box>
-                            <Text className="text-sm text-gray-500 uppercase font-semibold">Full Name</Text>
-                            <Text className="text-base text-gray-800 font-medium mt-1">{user?.name}</Text>
-                          </Box>
-                          
-                          <Box>
-                            <Text className="text-sm text-gray-500 uppercase font-semibold">Display Name</Text>
-                            <Text className="text-base text-gray-800 font-medium mt-1">{formData.displayName}</Text>
-                          </Box>
-                          
-                          <Box>
-                            <Text className="text-sm text-gray-500 uppercase font-semibold">Email Address</Text>
-                            <Flex alignItems="center" mt={1}>
-                              <Text className="text-base text-gray-800 font-medium">
-                                {hideEmail ? `${user?.email.substring(0, 3)}****${user?.email.substring(user?.email.lastIndexOf('@'))}` : user?.email}
-                              </Text>
-                              <Button 
-                                variant="ghost"
-                                size="xs"
-                                ml={2}
-                                onClick={() => setHideEmail(!hideEmail)}
-                              >
-                                {hideEmail ? "Show" : "Hide"}
-                              </Button>
-                            </Flex>
-                          </Box>
-
-                          <Box>
-                            <Text className="text-sm text-gray-500 uppercase font-semibold">Member Since</Text>
-                            <Text className="text-base text-gray-800 font-medium mt-1">{formatJoinedDate()}</Text>
-                          </Box>
-                        </Grid>
-                      ) : (
-                        <form>
-                          <VStack spacing={5} align="stretch">
-                            <FormControl isRequired isInvalid={errors.name}>
-                              <FormLabel>Full Name</FormLabel>
-                              <Input 
-                                name="name" 
-                                value={formData.name} 
-                                onChange={handleInputChange}
-                                placeholder="Enter your full name"
-                              />
-                              <FormErrorMessage>{errors.name}</FormErrorMessage>
-                            </FormControl>
-                            
-                            <FormControl>
-                              <FormLabel>Display Name</FormLabel>
-                              <Input 
-                                name="displayName" 
-                                value={formData.displayName} 
-                                onChange={handleInputChange}
-                                placeholder="Enter your display name"
-                              />
-                            </FormControl>
-                            
-                            <FormControl isRequired isInvalid={errors.email}>
-                              <FormLabel>Email Address</FormLabel>
-                              <Input 
-                                type="email"
-                                name="email" 
-                                value={formData.email} 
-                                onChange={handleInputChange}
-                                placeholder="Enter your email address"
-                              />
-                              <FormErrorMessage>{errors.email}</FormErrorMessage>
-                            </FormControl>
-                            
-                            <FormControl>
-                              <FormLabel>Email Visibility</FormLabel>
-                              <Switch 
-                                colorScheme="blue" 
-                                size="md" 
-                                isChecked={!hideEmail} 
-                                onChange={() => setHideEmail(!hideEmail)}
-                              />
-                              <Text fontSize="sm" color={mutedTextColor} mt={1}>
-                                When disabled, your email will be partially hidden on your profile
-                              </Text>
-                            </FormControl>
-                          </VStack>
-                        </form>
-                      )}
-                      
-                      <Divider my={6} />
-                      
-                      <Box mt={4}>
-                        <Heading as="h4" size="sm" fontWeight="semibold" mb={3}>Notification Preferences</Heading>
-                        <Flex justifyContent="space-between" alignItems="center">
-                          <Box>
-                            <Text className="text-sm text-gray-500 uppercase font-semibold">Email Notifications</Text>
-                            <Text className="text-sm text-gray-600 mt-1">
-                              Receive alerts and updates via email
-                            </Text>
-                          </Box>
-                          <Switch 
-                            colorScheme="blue" 
-                            size="md" 
-                            isChecked={emailNotifications} 
-                            onChange={handleToggleNotifications}
-                          />
-                        </Flex>
-                      </Box>
-                    </Box>
-                  </TabPanel>
-                  
-                  {/* Tab 2: Security */}
-                  <TabPanel p={6}>
-                    <Box className="bg-white rounded-lg">
-                      <Heading as="h4" size="md" fontWeight="semibold" mb={6}>Security Settings</Heading>
-                      
-                      <Box className="border border-gray-200 rounded-lg p-6 mb-6">
-                        <Heading as="h5" size="sm" fontWeight="semibold" mb={4}>Change Password</Heading>
-                        
-                        <VStack spacing={5} align="stretch">
-                          <FormControl isRequired isInvalid={errors.currentPassword}>
-                            <FormLabel>Current Password</FormLabel>
-                            <InputGroup>
-                              <Input 
-                                type={showCurrentPassword ? 'text' : 'password'}
-                                name="currentPassword" 
-                                value={passwordData.currentPassword} 
-                                onChange={handlePasswordChange}
-                                placeholder="Enter current password"
-                              />
-                              <InputRightElement width="4.5rem">
-                                <Button
-                                  h="1.75rem"
-                                  size="sm"
-                                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                >
-                                  <Icon as={showCurrentPassword ? FiEyeOff : FiEye} />
-                                </Button>
-                              </InputRightElement>
-                            </InputGroup>
-                            <FormErrorMessage>{errors.currentPassword}</FormErrorMessage>
-                          </FormControl>
-                          
-                          <FormControl isRequired isInvalid={errors.newPassword}>
-                            <FormLabel>New Password</FormLabel>
-                            <InputGroup>
-                              <Input 
-                                type={showPassword ? 'text' : 'password'}
-                                name="newPassword" 
-                                value={passwordData.newPassword} 
-                                onChange={handlePasswordChange}
-                                placeholder="Enter new password"
-                              />
-                              <InputRightElement width="4.5rem">
-                                <Button
-                                  h="1.75rem"
-                                  size="sm"
-                                  onClick={() => setShowPassword(!showPassword)}
-                                >
-                                  <Icon as={showPassword ? FiEyeOff : FiEye} />
-                                </Button>
-                              </InputRightElement>
-                            </InputGroup>
-                            <FormErrorMessage>{errors.newPassword}</FormErrorMessage>
-                          </FormControl>
-                          
-                          <FormControl isRequired isInvalid={errors.confirmPassword}>
-                            <FormLabel>Confirm Password</FormLabel>
-                            <InputGroup>
-                              <Input 
-                                type={showConfirmPassword ? 'text' : 'password'}
-                                name="confirmPassword" 
-                                value={passwordData.confirmPassword} 
-                                onChange={handlePasswordChange}
-                                placeholder="Confirm new password"
-                              />
-                              <InputRightElement width="4.5rem">
-                                <Button
-                                  h="1.75rem"
-                                  size="sm"
-                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                >
-                                  <Icon as={showConfirmPassword ? FiEyeOff : FiEye} />
-                                </Button>
-                              </InputRightElement>
-                            </InputGroup>
-                            <FormErrorMessage>{errors.confirmPassword}</FormErrorMessage>
-                          </FormControl>
-                          
-                          <Button 
-                            colorScheme="blue" 
-                            isLoading={isSubmitting}
-                            onClick={changePassword}
-                          >
-                            Update Password
-                          </Button>
-                        </VStack>
-                      </Box>
-                      
-                      <Box className="border border-gray-200 rounded-lg p-6">
-                        <Heading as="h5" size="sm" fontWeight="semibold" mb={4}>Two-Factor Authentication</Heading>
-                        <Flex justifyContent="space-between" alignItems="center">
-                          <Box>
-                            <Text className="text-sm text-gray-600">
-                              Add an extra layer of security to your account
-                            </Text>
-                            <Text className="text-sm font-semibold mt-1">
-                              Status: <Badge colorScheme="red" ml={1}>Disabled</Badge>
-                            </Text>
-                          </Box>
-                          <Button size="sm" colorScheme="blue">
-                            Enable 2FA
-                          </Button>
-                        </Flex>
-                      </Box>
-                    </Box>
-                  </TabPanel>
-                  
-                  {/* Tab 3: Danger Zone */}
-                  <TabPanel p={6}>
-                    <Box 
-                      className="bg-white rounded-lg"
-                      borderWidth="1px" 
-                      borderColor={dangerZoneBorder} 
-                      bg={dangerZoneBg} 
-                      p={6}
-                    >
-                      <Heading as="h4" size="md" fontWeight="semibold" mb={6} color="red.600">
-                        Danger Zone
-                      </Heading>
-                      
-                      <Text className="text-gray-700 mb-4">
-                        The following actions are irreversible. Please proceed with caution.
-                      </Text>
-                      
-                      <Box className="border border-red-300 bg-white rounded-lg p-6">
-                        <Flex 
-                          justifyContent="space-between" 
-                          alignItems={{ base: "flex-start", md: "center" }} 
-                          flexDirection={{ base: "column", md: "row" }}
-                          gap={4}
-                        >
-                          <Box>
-                            <Text className="text-lg font-semibold text-gray-800">Delete Account</Text>
-                            <Text className="text-sm text-gray-600 mt-1">
-                              Once deleted, all your data will be permanently removed. This action cannot be undone.
-                            </Text>
-                          </Box>
-                          <Button 
-                            colorScheme="red" 
-                            onClick={onOpen}
-                          >
-                            Delete Account
-                          </Button>
-                        </Flex>
-                      </Box>
-                    </Box>
-                  </TabPanel>
-                </TabPanels>
-              </Tabs>
-            </CardBody>
-          </Card>
-        </GridItem>
-      </Grid>
-      
-      {/* Delete Account Confirmation Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader className="text-red-600">Delete Account</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <Text mb={4}>This action cannot be undone. All your data will be permanently deleted.</Text>
-            <Text mb={6} fontWeight="bold">
-              Type "delete" or your email address to confirm:
-            </Text>
-            <Input 
-              ref={deleteInputRef}
-              placeholder={`Type "delete" or ${user?.email}`}
-              value={confirmDelete}
-              onChange={(e) => setConfirmDelete(e.target.value)}
-            />
-          </ModalBody>
-          <ModalFooter>
-            <Button onClick={onClose} mr={3}>Cancel</Button>
-            <Button 
-              colorScheme="red" 
-              onClick={handleDeleteAccount}
-              isDisabled={confirmDelete !== 'delete' && confirmDelete !== user?.email}
-              isLoading={isSubmitting}
-            >
-              Delete Permanently
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+                <div className="border-t border-white/10 my-8" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-white/50 uppercase font-semibold mb-1">Email Notifications</div>
+                    <div className="text-sm text-white/70">Receive alerts and updates via email</div>
+                  </div>
+                  <button onClick={handleToggleNotifications} className={`w-12 h-7 rounded-full flex items-center transition-all duration-200 ${emailNotifications ? 'bg-gradient-to-r from-pigmentgreen-500 to-malachite-500' : 'bg-white/10'}`}> <span className={`inline-block w-6 h-6 rounded-full bg-white shadow transform transition-all duration-200 ${emailNotifications ? 'translate-x-5' : 'translate-x-1'}`}></span> </button>
+                </div>
+              </SpotlightCard>
+            )}
+            {/* Security Tab */}
+            {tabIndex === 1 && (
+              <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-white/20">
+                <h3 className="text-xl font-bold text-white mb-6">Security Settings</h3>
+                <div className="border border-white/10 rounded-2xl p-6 mb-8 bg-white/5">
+                  <h4 className="text-lg font-semibold text-white mb-4">Change Password</h4>
+                  <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-white/50 font-semibold">Current Password</label>
+                      <div className="relative">
+                        <input type={showCurrentPassword ? 'text' : 'password'} name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} className="px-4 py-2 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-pigmentgreen-500 w-full" placeholder="Enter current password" />
+                        <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-2 top-2 text-white/60 text-lg">{showCurrentPassword ? '🙈' : '👁️'}</button>
+                      </div>
+                      {errors.currentPassword && <div className="text-xs text-red-400 mt-1">{errors.currentPassword}</div>}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-white/50 font-semibold">New Password</label>
+                      <div className="relative">
+                        <input type={showPassword ? 'text' : 'password'} name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} className="px-4 py-2 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-pigmentgreen-500 w-full" placeholder="Enter new password" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-2 text-white/60 text-lg">{showPassword ? '🙈' : '👁️'}</button>
+                      </div>
+                      {errors.newPassword && <div className="text-xs text-red-400 mt-1">{errors.newPassword}</div>}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-white/50 font-semibold">Confirm Password</label>
+                      <div className="relative">
+                        <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="px-4 py-2 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-pigmentgreen-500 w-full" placeholder="Confirm new password" />
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-2 top-2 text-white/60 text-lg">{showConfirmPassword ? '🙈' : '👁️'}</button>
+                      </div>
+                      {errors.confirmPassword && <div className="text-xs text-red-400 mt-1">{errors.confirmPassword}</div>}
+                    </div>
+                  </form>
+                  <button onClick={changePassword} disabled={isSubmitting} className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold shadow hover:from-pigmentgreen-600 hover:to-malachite-600 transition-all disabled:opacity-60">{isSubmitting ? 'Updating...' : 'Update Password'}</button>
+                </div>
+                <div className="border border-white/10 rounded-2xl p-6 bg-white/5">
+                  <h4 className="text-lg font-semibold text-white mb-4">Two-Factor Authentication</h4>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <div className="text-sm text-white/70">Add an extra layer of security to your account</div>
+                      <div className="text-sm font-semibold mt-1 text-white/80">Status: <span className="inline-block px-2 py-1 rounded-full bg-red-500/80 text-white text-xs ml-1">Disabled</span></div>
+                    </div>
+                    <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold shadow hover:from-pigmentgreen-600 hover:to-malachite-600 transition-all">Enable 2FA</button>
+                  </div>
+                </div>
+              </SpotlightCard>
+            )}
+            {/* Danger Zone Tab */}
+            {tabIndex === 2 && (
+              <SpotlightCard className="bg-gradient-to-br from-red-900/40 to-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-red-500/30">
+                <h3 className="text-xl font-bold text-red-400 mb-6">Danger Zone</h3>
+                <div className="text-white/80 mb-4">The following actions are irreversible. Please proceed with caution.</div>
+                <div className="border border-red-500/30 rounded-2xl p-6 bg-white/5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <div className="text-lg font-semibold text-white">Delete Account</div>
+                    <div className="text-sm text-white/70 mt-1">Once deleted, all your data will be permanently removed. This action cannot be undone.</div>
+                  </div>
+                  <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-pigmentgreen-500 text-white font-semibold shadow hover:from-red-600 hover:to-pigmentgreen-600 transition-all">Delete Account</button>
+                </div>
+              </SpotlightCard>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-gradient-to-br from-red-900/80 to-black/90 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-red-500/30 relative animate-in slide-in-from-top-2">
+            <button onClick={() => setShowDeleteModal(false)} className="absolute top-3 right-3 text-white/60 hover:text-white text-xl">&times;</button>
+            <h3 className="text-2xl font-bold text-red-400 mb-4">Delete Account</h3>
+            <div className="text-white/80 mb-4">This action cannot be undone. All your data will be permanently deleted.</div>
+            <div className="text-white/80 font-semibold mb-2">Type "delete" or your email address to confirm:</div>
+            <input ref={deleteInputRef} placeholder={`Type "delete" or ${user?.email}`} value={confirmDelete} onChange={e => setConfirmDelete(e.target.value)} className="w-full px-4 py-3 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-red-500 mb-4" />
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2 rounded-xl bg-white/10 text-white/80 font-semibold shadow hover:bg-white/20 transition-all">Cancel</button>
+              <button onClick={handleDeleteAccount} disabled={confirmDelete !== 'delete' && confirmDelete !== user?.email || isSubmitting} className="flex-1 py-2 rounded-xl bg-gradient-to-r from-red-500 to-pigmentgreen-500 text-white font-semibold shadow hover:from-red-600 hover:to-pigmentgreen-600 transition-all disabled:opacity-60">{isSubmitting ? 'Deleting...' : 'Delete Permanently'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
