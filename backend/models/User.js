@@ -14,7 +14,22 @@ const userSchema = mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Please add a password'],
+      required: function() {
+        // Password is required only if not using OAuth
+        return !this.provider;
+      },
+    },
+    provider: {
+      type: String,
+      enum: ['local', 'github', 'google'],
+      default: 'local',
+    },
+    providerId: {
+      type: String,
+      sparse: true, // Allows multiple null values
+    },
+    avatar: {
+      type: String,
     },
     role: {
       type: String,
@@ -27,18 +42,21 @@ const userSchema = mongoose.Schema(
   }
 );
 
-// Hash password before saving
+// Hash password before saving (only for local users)
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    next();
+  if (!this.isModified('password') || this.provider !== 'local') {
+    return next();
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Match password
+// Match password (only for local users)
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (this.provider !== 'local') {
+    return false;
+  }
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

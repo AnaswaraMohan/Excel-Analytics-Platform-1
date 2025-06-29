@@ -367,7 +367,7 @@ const Profile = () => {
             )}
             <div className="text-white/70 text-sm mb-2">{formatJoinedDate()}</div>
             <div className="flex flex-col gap-2 mt-4">
-              <button onClick={handleLogout} className="w-full py-2 rounded-xl bg-gradient-to-r from-red-500 to-pigmentgreen-500 text-white font-semibold shadow-lg hover:from-red-600 hover:to-pigmentgreen-600 transition-all">Sign Out</button>
+              <button onClick={handleLogout} className="w-full py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-700 text-white font-semibold shadow-lg hover:from-red-600 hover:to-red-800 transition-all">Sign Out</button>
               <Link to="/dashboard" className="w-full block">
                 <button className="w-full py-2 rounded-xl bg-white/10 text-white/80 font-semibold shadow hover:bg-white/20 transition-all mt-2">Back to Dashboard</button>
               </Link>
@@ -519,7 +519,7 @@ const Profile = () => {
                     <div className="text-lg font-semibold text-white">Delete Account</div>
                     <div className="text-sm text-white/70 mt-1">Once deleted, all your data will be permanently removed. This action cannot be undone.</div>
                   </div>
-                  <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-pigmentgreen-500 text-white font-semibold shadow hover:from-red-600 hover:to-pigmentgreen-600 transition-all">Delete Account</button>
+                  <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-700 text-white font-semibold shadow hover:from-red-600 hover:to-red-800 transition-all">Delete Account</button>
                 </div>
               </SpotlightCard>
             )}
@@ -537,7 +537,7 @@ const Profile = () => {
             <input ref={deleteInputRef} placeholder={`Type "delete" or ${user?.email}`} value={confirmDelete} onChange={e => setConfirmDelete(e.target.value)} className="w-full px-4 py-3 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-red-500 mb-4" />
             <div className="flex gap-2 mt-4">
               <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2 rounded-xl bg-white/10 text-white/80 font-semibold shadow hover:bg-white/20 transition-all">Cancel</button>
-              <button onClick={handleDeleteAccount} disabled={confirmDelete !== 'delete' && confirmDelete !== user?.email || isSubmitting} className="flex-1 py-2 rounded-xl bg-gradient-to-r from-red-500 to-pigmentgreen-500 text-white font-semibold shadow hover:from-red-600 hover:to-pigmentgreen-600 transition-all disabled:opacity-60">{isSubmitting ? 'Deleting...' : 'Delete Permanently'}</button>
+              <button onClick={handleDeleteAccount} disabled={confirmDelete !== 'delete' && confirmDelete !== user?.email || isSubmitting} className="flex-1 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-700 text-white font-semibold shadow hover:from-red-600 hover:to-red-800 transition-all disabled:opacity-60">{isSubmitting ? 'Deleting...' : 'Delete Permanently'}</button>
             </div>
           </div>
         </div>

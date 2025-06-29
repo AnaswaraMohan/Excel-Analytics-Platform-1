@@ -23,6 +23,7 @@ This is a **5-week progressive development project** building a complete Excel A
 
 ## 📚 Table of Contents
 
+- [Project Status & Current Issues](#-project-status--current-issues)
 - [Project Phases & Implementation](#-project-phases--continuous-implementation)
 - [Project Structure](#-current-project-structure)
 - [Current Features](#-current-features--capabilities)
@@ -32,8 +33,94 @@ This is a **5-week progressive development project** building a complete Excel A
 - [Testing & Usage](#-testing--usage)
 - [Contributing](#-contributing)
 - [Support & Troubleshooting](#-support--troubleshooting)
-- [Future Enhancements](#-future-enhancements--roadmap)
+- [Future Enhancements](#-future-enhances--roadmap)
 - [License](#-license)
+
+## ⚠️ **Project Status & Current Issues**
+
+### **Current Status: Week 2 Complete with Database Connection Issue**
+- ✅ **Authentication System**: Fully functional JWT-based authentication
+- ✅ **File Upload System**: Complete Excel file processing with validation
+- ✅ **Frontend UI**: Responsive design with Tailwind CSS
+- ✅ **API Endpoints**: All core endpoints implemented and tested
+- ❌ **Database Connection**: MongoDB Atlas connection needs configuration
+
+### **🔧 Immediate Action Required**
+**MongoDB Connection Error**: The backend server is experiencing connection issues with MongoDB Atlas.
+
+## 🔧 **Complete Setup Guide**
+
+### **Environment Configuration**
+
+**Path**: `backend/.env` (create this file if it doesn't exist)
+
+```env
+# Database Configuration
+MONGO_URI=mongodb+srv://your_username:your_password@your_cluster_url/your_database_name?retryWrites=true&w=majority
+JWT_SECRET=your_super_secret_jwt_key_minimum_32_characters_long_for_security
+
+# OAuth Configuration
+GITHUB_CLIENT_ID=your_github_client_id_here
+GITHUB_CLIENT_SECRET=your_github_client_secret_here
+GITHUB_CALLBACK_URL=http://localhost:5000/api/auth/github/callback
+
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+
+# Frontend URL (for OAuth redirects)
+FRONTEND_URL=http://localhost:5173
+
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# File Upload Configuration
+MAX_FILE_SIZE=5242880
+ALLOWED_FILE_TYPES=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel
+```
+
+### **OAuth Setup Instructions**
+
+#### **GitHub OAuth App Setup**
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Fill in the details:
+   - **Application name**: Excel Analytics Platform
+   - **Homepage URL**: `http://localhost:5173`
+   - **Authorization callback URL**: `http://localhost:5000/api/auth/github/callback`
+4. Click "Register application"
+5. Copy the **Client ID** and **Client Secret** to your `.env` file
+
+#### **Google OAuth App Setup**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth client ID"
+5. Configure OAuth consent screen
+6. Create OAuth client ID:
+   - **Application type**: Web application
+   - **Authorized redirect URIs**: `http://localhost:5000/api/auth/google/callback`
+7. Copy the **Client ID** and **Client Secret** to your `.env` file
+
+**Error Message**: `Error: querySrv EREFUSED _mongodb._tcp.excelanalytics.gxjdfb7.mongodb.net`
+
+**Solution Steps**:
+1. **Check `.env` file** in `backend/` directory
+2. **Verify MongoDB URI** format and credentials
+3. **Update connection string** with valid Atlas credentials
+4. **Test connection** by restarting the backend server
+
+**Required Environment Variables**:
+```env
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster-url>/<dbname>?retryWrites=true&w=majority
+JWT_SECRET=your_jwt_secret_key_minimum_32_characters
+PORT=5000
+NODE_ENV=development
+```
+
+### **📋 Next Phase Preparation**
+Once the database connection is resolved, the project is ready for **Week 3: Data Visualization** implementation.
 
 ## 🎯 Project Phases & Continuous Implementation
 
@@ -42,7 +129,7 @@ This is a **5-week progressive development project** building a complete Excel A
 - **Authentication System**: JWT-based secure authentication
 - **User Management**: Registration, login, protected routes
 - **UI Framework**: Tailwind CSS with responsive design
-- **Database Integration**: MongoDB Atlas connection
+- **Database Integration**: MongoDB Atlas connection (needs configuration)
 - **Core Components**: Navbar, PrivateRoute, Dashboard foundation
 
 ### ✅ **Week 2: File Upload & Excel Processing** (COMPLETED)
@@ -53,7 +140,7 @@ This is a **5-week progressive development project** building a complete Excel A
 - **UI Components**: Drag-drop upload, data preview, progress indicators
 - **API Endpoints**: Upload, retrieve, and manage Excel data
 
-### 🔄 **Week 3: Data Visualization** (UPCOMING)
+### 🔄 **Week 3: Data Visualization** (READY TO START)
 - Chart generation with Chart.js/D3.js
 - Interactive dashboards
 - Custom visualization options
@@ -384,14 +471,20 @@ We welcome contributions from the community! Please read our [CONTRIBUTING.md](C
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🆘 **Support & Troubleshooting**
 
-### **Common Issues & Solutions**
 
 #### **Backend Issues**
 - **MongoDB Connection Error**
   ```
-  Solution: Verify MONGO_URI in .env file and ensure IP is whitelisted in Atlas
+  Error: querySrv EREFUSED _mongodb._tcp.excelanalytics.gxjdfb7.mongodb.net
+  
+  Solution Steps:
+  1. Check .env file exists in backend/ directory
+  2. Verify MONGO_URI format: mongodb+srv://<username>:<password>@<cluster-url>/<dbname>?retryWrites=true&w=majority
+  3. Ensure MongoDB Atlas cluster is active and accessible
+  4. Check if IP address is whitelisted in Atlas Network Access
+  5. Verify database user credentials are correct
+  6. Test connection by restarting backend server
   ```
 - **JWT Authentication Error**
   ```
@@ -432,13 +525,16 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**🎯 Current Status: Week 2 Complete**
+**🎯 Current Status: Week 2 Complete with Database Issue**
 - ✅ Authentication system with JWT security
 - ✅ Excel file upload & intelligent processing
 - ✅ Data preview & management dashboard
 - ✅ Responsive UI/UX with Tailwind CSS
 - ✅ RESTful API with comprehensive error handling
-- 🔄 Ready for Week 3 development (Data Visualization)
+- ❌ **MongoDB Connection**: Needs configuration in .env file
+- 🔄 Ready for Week 3 development (Data Visualization) once database is connected
+
+**🔧 Immediate Action**: Configure MongoDB Atlas connection in `backend/.env` file
 
 **🚀 Quick Start**: Follow the [Installation Guide](#-getting-started) to get started in minutes!
 

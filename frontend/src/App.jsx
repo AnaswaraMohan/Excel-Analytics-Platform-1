@@ -2,12 +2,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ToastContainer } from 'react-toastify';
 import { ChakraProvider } from '@chakra-ui/react';
 import 'react-toastify/dist/ReactToastify.css';
+import './styles/toast.css';
 import './App.css';
 
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
 import Profile from './pages/Profile';
 import ExcelUpload from './pages/ExcelUpload';
+import DataVisualization from './pages/DataVisualization';
+import OAuthCallback from './pages/OAuthCallback';
 import PrivateRoute from './components/PrivateRoute';
 import { authService } from './utils/auth';
 
@@ -20,6 +23,10 @@ function App() {
             <Route 
               path="/" 
               element={<LandingPage />}
+            />
+            <Route 
+              path="/oauth-callback" 
+              element={<OAuthCallback />}
             />
             <Route 
               path="/dashboard" 
@@ -45,19 +52,29 @@ function App() {
                 </PrivateRoute>
               } 
             />
+            <Route 
+              path="/visualize/:id" 
+              element={
+                <PrivateRoute>
+                  <DataVisualization />
+                </PrivateRoute>
+              } 
+            />
           </Routes>
           
           <ToastContainer
             position="top-right"
             autoClose={5000}
             hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
+            newestOnTop={true}
+            closeOnClick={true}
             rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
+            pauseOnFocusLoss={true}
+            draggable={true}
+            pauseOnHover={true}
             theme="light"
+            limit={5}
+            className="custom-toast-container"
           />
         </div>
       </Router>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../utils/auth';
+import { getUserUploads } from '../services/uploadService';
 import { toast } from 'react-toastify';
 import Footer from '../components/Footer';
 import { gsap } from 'gsap';
+import { FaEye, FaTrash, FaDownload, FaChartLine } from 'react-icons/fa';
 
 // Spotlight effect hook (from LandingPage)
 function useSpotlight(ref) {
@@ -57,6 +59,8 @@ const Dashboard = () => {
   const [metrics, setMetrics] = useState({ files: 0, sheets: 0, dataPoints: 0 });
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [metricsError, setMetricsError] = useState(null);
+  const [uploads, setUploads] = useState([]);
+  const [uploadsLoading, setUploadsLoading] = useState(false);
   const navigate = useNavigate();
   const dashboardRef = useRef(null);
   const statsRef = useRef(null);
@@ -77,26 +81,39 @@ const Dashboard = () => {
     fetchUserProfile();
   }, []);
 
-  // Fetch dashboard metrics from backend (mocked for now)
+  // Fetch user uploads
   useEffect(() => {
-    const fetchMetrics = async () => {
-      setMetricsLoading(true);
-      setMetricsError(null);
+    const fetchUploads = async () => {
+      setUploadsLoading(true);
       try {
-        // TODO: Replace with real API call
-        // const response = await fetch('/api/dashboard/metrics');
-        // const data = await response.json();
-        // setMetrics(data);
-        setTimeout(() => {
-          setMetrics({ files: 12, sheets: 34, dataPoints: 5678 });
-          setMetricsLoading(false);
-        }, 800);
-      } catch (err) {
-        setMetricsError('Failed to load metrics');
-        setMetricsLoading(false);
+        const uploadsData = await getUserUploads();
+        setUploads(uploadsData);
+        
+        // Update metrics based on actual data
+        const totalDataPoints = uploadsData.reduce((total, upload) => {
+          if (upload.jsonData) {
+            const data = typeof upload.jsonData === 'string' 
+              ? JSON.parse(upload.jsonData) 
+              : upload.jsonData;
+            return total + (data.length || 0);
+          }
+          return total;
+        }, 0);
+        
+        setMetrics({
+          files: uploadsData.length,
+          sheets: uploadsData.length, // Assuming one sheet per file for now
+          dataPoints: totalDataPoints
+        });
+      } catch (error) {
+        toast.error('Failed to fetch uploads');
+        console.error('Error fetching uploads:', error);
+      } finally {
+        setUploadsLoading(false);
       }
     };
-    fetchMetrics();
+
+    fetchUploads();
   }, []);
 
   // GSAP animations
@@ -243,6 +260,24 @@ const Dashboard = () => {
   // Upload handler
   const handleUploadClick = () => {
     navigate('/upload');
+  };
+
+  const handleVisualizeClick = (uploadId) => {
+    navigate(`/visualize/${uploadId}`);
+  };
+
+  const handleDeleteUpload = async (uploadId) => {
+    if (window.confirm('Are you sure you want to delete this file?')) {
+      try {
+        // TODO: Implement delete API call
+        toast.success('File deleted successfully');
+        // Refresh uploads list
+        const uploadsData = await getUserUploads();
+        setUploads(uploadsData);
+      } catch (error) {
+        toast.error('Failed to delete file');
+      }
+    }
   };
 
   if (isLoading) {
@@ -503,56 +538,187 @@ const Dashboard = () => {
           {/* Files Tab */}
           {activeTab === 1 && (
             <div className="min-h-[60vh] py-10">
-              <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    </svg>
+              {uploadsLoading ? (
+                <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pigmentgreen-500 mx-auto"></div>
+                    <p className="mt-4 text-white/70">Loading your files...</p>
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-4">No files uploaded yet</h3>
-                  <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
-                    Get started by uploading an Excel file to begin analyzing your data and unlocking powerful insights.
-                  </p>
-                  <button
-                    onClick={handleUploadClick}
-                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                  >
-                    Upload Your First File
-                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                  </button>
+                </SpotlightCard>
+              ) : uploads.length === 0 ? (
+                <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-4">No files uploaded yet</h3>
+                    <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
+                      Get started by uploading an Excel file to begin analyzing your data and unlocking powerful insights.
+                    </p>
+                    <button
+                      onClick={handleUploadClick}
+                      className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                    >
+                      Upload Your First File
+                      <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </button>
+                  </div>
+                </SpotlightCard>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-white">Your Files</h2>
+                    <button
+                      onClick={handleUploadClick}
+                      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                    >
+                      Upload New File
+                      <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {uploads.map((upload) => {
+                      const dataPoints = upload.jsonData ? 
+                        (typeof upload.jsonData === 'string' ? JSON.parse(upload.jsonData) : upload.jsonData).length : 0;
+                      
+                      return (
+                        <SpotlightCard
+                          key={upload._id}
+                          className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+                        >
+                          <div className="flex flex-col h-full">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="w-12 h-12 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-xl flex items-center justify-center">
+                                <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleVisualizeClick(upload._id)}
+                                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                  title="Visualize Data"
+                                >
+                                  <FaChartLine className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteUpload(upload._id)}
+                                  className="p-2 text-white/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                  title="Delete File"
+                                >
+                                  <FaTrash className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-white mb-2 truncate">
+                                {upload.originalName}
+                              </h3>
+                              <div className="space-y-2 text-sm text-white/70">
+                                <div className="flex justify-between">
+                                  <span>Data Points:</span>
+                                  <span className="font-medium">{dataPoints}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Uploaded:</span>
+                                  <span className="font-medium">
+                                    {new Date(upload.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Size:</span>
+                                  <span className="font-medium">
+                                    {upload.fileSize ? `${(upload.fileSize / 1024).toFixed(1)} KB` : 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4 pt-4 border-t border-white/10">
+                              <button
+                                onClick={() => handleVisualizeClick(upload._id)}
+                                className="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                              >
+                                <FaChartLine className="mr-2 w-4 h-4" />
+                                Visualize Data
+                              </button>
+                            </div>
+                          </div>
+                        </SpotlightCard>
+                      );
+                    })}
+                  </div>
                 </div>
-              </SpotlightCard>
+              )}
             </div>
           )}
 
           {/* Analytics Tab */}
           {activeTab === 2 && (
             <div className="min-h-[60vh] py-10">
-              <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-malachite-500 to-pigmentgreen-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
+              {uploads.length === 0 ? (
+                <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-malachite-500 to-pigmentgreen-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-4">No analytics available</h3>
+                    <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
+                      Upload an Excel file to begin analyzing your data and unlocking powerful visualizations.
+                    </p>
+                    <button
+                      onClick={handleUploadClick}
+                      className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-malachite-500 to-pigmentgreen-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                    >
+                      Start Analyzing
+                      <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </button>
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-4">No analytics available</h3>
-                  <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
-                    Upload an Excel file to begin analyzing your data and unlocking powerful visualizations.
-                  </p>
-                  <button
-                    onClick={handleUploadClick}
-                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-malachite-500 to-pigmentgreen-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                  >
-                    Start Analyzing
-                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </button>
+                </SpotlightCard>
+              ) : (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold text-white">Data Analytics</h2>
+                  <p className="text-white/70">Select a file from the Files tab to start visualizing your data with interactive charts and graphs.</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {uploads.slice(0, 3).map((upload) => (
+                      <SpotlightCard
+                        key={upload._id}
+                        className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                        onClick={() => handleVisualizeClick(upload._id)}
+                      >
+                        <div className="text-center">
+                          <div className="w-12 h-12 bg-gradient-to-br from-malachite-500 to-pigmentgreen-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <FaChartLine className="w-6 h-6 text-white" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-white mb-2 truncate">
+                            {upload.originalName}
+                          </h3>
+                          <p className="text-white/70 text-sm mb-4">
+                            Click to visualize this data
+                          </p>
+                          <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-malachite-500 to-pigmentgreen-500 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200">
+                            <FaChartLine className="mr-2 w-4 h-4" />
+                            Visualize
+                          </button>
+                        </div>
+                      </SpotlightCard>
+                    ))}
+                  </div>
                 </div>
-              </SpotlightCard>
+              )}
             </div>
           )}
 

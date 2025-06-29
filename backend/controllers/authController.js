@@ -111,9 +111,70 @@ const changePassword = async (req, res) => {
   }
 };
 
+// @desc    OAuth callback handler
+// @route   GET /api/auth/:provider/callback
+// @access  Public
+const oauthCallback = async (req, res) => {
+  try {
+    console.log('OAuth callback received:', {
+      provider: req.params.provider,
+      user: req.user ? 'present' : 'missing',
+      session: req.session ? 'present' : 'missing'
+    });
+
+    const { user } = req;
+    if (!user) {
+      console.error('OAuth callback: No user found in request');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/oauth-callback?error=No user data received`);
+    }
+
+    console.log('OAuth user data:', {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      provider: user.provider
+    });
+
+    const token = generateToken(user._id);
+    
+    // Prepare user data for frontend
+    const userData = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      provider: user.provider,
+      avatar: user.avatar
+    };
+    
+    // Redirect to frontend with token and user data
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const userParam = encodeURIComponent(JSON.stringify(userData));
+    
+    console.log('Redirecting to frontend:', `${frontendUrl}/oauth-callback?token=${token.substring(0, 10)}...&user=${userParam.substring(0, 50)}...`);
+    
+    res.redirect(`${frontendUrl}/oauth-callback?token=${token}&user=${userParam}`);
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/oauth-callback?error=Authentication failed`);
+  }
+};
+
+// @desc    OAuth failure handler
+// @route   GET /api/auth/:provider/failure
+// @access  Public
+const oauthFailure = (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  res.redirect(`${frontendUrl}/oauth-callback?error=Authentication failed`);
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
   changePassword,
+  oauthCallback,
+  oauthFailure,
 };
