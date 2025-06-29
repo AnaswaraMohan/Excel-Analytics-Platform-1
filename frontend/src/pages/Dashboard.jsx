@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../utils/auth';
-import { getUserUploads } from '../services/uploadService';
-import { toast } from 'react-toastify';
-import Footer from '../components/Footer';
+import { getUserUploads, deleteUpload, retryAnalysis, uploadExcelFile } from '../services/uploadService';
 import { gsap } from 'gsap';
-import { FaEye, FaTrash, FaDownload, FaChartLine } from 'react-icons/fa';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { 
+  FiUpload, FiActivity, FiFileText, FiZap, FiCheck, 
+  FiClock, FiAlertTriangle, FiTrash2, FiEye, FiRefreshCw, FiPlus,
+  FiDatabase, FiTrendingUp, FiUser, FiLogOut, FiBarChart,
+  FiDownload, FiSearch, FiGrid, FiPieChart, FiMoreVertical,
+  FiSettings, FiBell, FiHelpCircle, FiChevronDown, FiFilter
+} from 'react-icons/fi';
 
-// Spotlight effect hook (from LandingPage)
+// Spotlight effect hook
 function useSpotlight(ref) {
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -25,7 +30,7 @@ function useSpotlight(ref) {
   }, [ref]);
 }
 
-// SpotlightCard wrapper (from LandingPage)
+// SpotlightCard wrapper
 function SpotlightCard({ className = '', children, ...props }) {
   const cardRef = useRef(null);
   useSpotlight(cardRef);
@@ -51,710 +56,931 @@ function SpotlightCard({ className = '', children, ...props }) {
   );
 }
 
-const Dashboard = () => {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(0);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [metrics, setMetrics] = useState({ files: 0, sheets: 0, dataPoints: 0 });
-  const [metricsLoading, setMetricsLoading] = useState(true);
-  const [metricsError, setMetricsError] = useState(null);
-  const [uploads, setUploads] = useState([]);
-  const [uploadsLoading, setUploadsLoading] = useState(false);
-  const navigate = useNavigate();
-  const dashboardRef = useRef(null);
-  const statsRef = useRef(null);
-  const cardsRef = useRef([]);
+// Register ScrollTrigger plugin
+gsap.registerPlugin(ScrollTrigger);
 
-  // Fetch user profile
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const userProfile = await authService.getProfile();
-        setUser(userProfile);
-      } catch (error) {
-        toast.error('Failed to fetch user profile');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchUserProfile();
-  }, []);
-
-  // Fetch user uploads
-  useEffect(() => {
-    const fetchUploads = async () => {
-      setUploadsLoading(true);
-      try {
-        const uploadsData = await getUserUploads();
-        setUploads(uploadsData);
-        
-        // Update metrics based on actual data
-        const totalDataPoints = uploadsData.reduce((total, upload) => {
-          if (upload.jsonData) {
-            const data = typeof upload.jsonData === 'string' 
-              ? JSON.parse(upload.jsonData) 
-              : upload.jsonData;
-            return total + (data.length || 0);
-          }
-          return total;
-        }, 0);
-        
-        setMetrics({
-          files: uploadsData.length,
-          sheets: uploadsData.length, // Assuming one sheet per file for now
-          dataPoints: totalDataPoints
-        });
-      } catch (error) {
-        toast.error('Failed to fetch uploads');
-        console.error('Error fetching uploads:', error);
-      } finally {
-        setUploadsLoading(false);
-      }
-    };
-
-    fetchUploads();
-  }, []);
-
-  // GSAP animations
-  useEffect(() => {
-    if (!isLoading && dashboardRef.current) {
-      // Enable GSAP performance optimizations
-      gsap.config({
-        force3D: true,
-        nullTargetWarn: false
-      });
-
-      // Dashboard entrance animation
-      gsap.fromTo(dashboardRef.current, 
-        { 
-          opacity: 0, 
-          y: 30 
-        },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: "power3.out"
-        }
-      );
-
-      // Stats cards animation
-      if (statsRef.current) {
-        gsap.fromTo(statsRef.current.children, 
-          {
-            y: 50,
-            opacity: 0,
-            scale: 0.95
-          },
-          {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            duration: 0.8,
-            ease: "power3.out",
-            stagger: 0.1,
-            delay: 0.3
-          }
-        );
-      }
-
-      // Feature cards animation
-      cardsRef.current.forEach((ref, index) => {
-        if (ref) {
-          gsap.fromTo(ref, 
-            {
-              y: 60,
-              opacity: 0,
-              scale: 0.9
-            },
-            {
-              y: 0,
-              opacity: 1,
-              scale: 1,
-              duration: 0.8,
-              ease: "power3.out",
-              delay: 0.5 + (index * 0.1)
-            }
-          );
-        }
-      });
-    }
-  }, [isLoading]);
-
-  // Dashboard cards (actions)
-  const dashboardCards = [
-    {
-      title: 'Upload Files',
-      description: 'Upload and manage your Excel files with our secure, lightning-fast processing engine.',
-      icon: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
-      color: 'from-pigmentgreen-500 to-malachite-500',
-      action: 'Upload',
-      soon: false,
-      onClick: () => handleUploadClick(),
-    },
-    {
-      title: 'Analyze Data',
-      description: 'Transform your raw data into stunning, interactive visualizations and dashboards.',
-      icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2z',
-      color: 'from-malachite-500 to-pigmentgreen-500',
-      action: 'Analyze',
-      soon: true,
-      onClick: null,
-    },
-    {
-      title: 'Generate Reports',
-      description: 'Create professional, shareable reports with automated insights and recommendations.',
-      icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-      color: 'from-pigmentgreen-500 to-malachite-500',
-      action: 'Generate',
-      soon: true,
-      onClick: null,
-    },
-    {
-      title: 'AI Insights',
-      description: 'Get intelligent insights and recommendations powered by advanced AI algorithms.',
-      icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-      color: 'from-malachite-500 to-pigmentgreen-500',
-      action: 'Explore',
-      soon: true,
-      onClick: null,
-    },
-  ];
-
-  // Accessibility: keyboard navigation for tabs
-  const handleTabKeyDown = (e) => {
-    if (e.key === 'ArrowRight') {
-      setActiveTab((prev) => (prev + 1) % 4);
-    } else if (e.key === 'ArrowLeft') {
-      setActiveTab((prev) => (prev - 1 + 4) % 4);
-    }
+// Modern Glassmorphism Card Component with SpotlightCard integration
+function GlassCard({ className = '', children, variant = 'default', ...props }) {
+  const cardRef = useRef(null);
+  useSpotlight(cardRef);
+  
+  const variants = {
+    default: 'bg-white/5 border-white/10 hover:bg-white/10',
+    primary: 'bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border-emerald-500/20 hover:border-emerald-400/30',
+    success: 'bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border-emerald-500/20 hover:border-emerald-400/30',
+    warning: 'bg-gradient-to-br from-amber-500/10 to-orange-600/10 border-amber-500/20 hover:border-amber-400/30',
+    danger: 'bg-gradient-to-br from-red-500/10 to-pink-600/10 border-red-500/20 hover:border-red-400/30'
   };
-
-  // Handle click away from user menu
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showUserMenu && !event.target.closest('.user-menu-container')) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUserMenu]);
-
-  // Navigate to profile page
-  const goToProfile = () => {
-    navigate('/profile');
-    setShowUserMenu(false);
-  };
-
-  // Sign out handler
-  const handleSignOut = () => {
-    authService.logout();
-    toast.success('Successfully logged out');
-    navigate('/');
-  };
-
-  // Upload handler
-  const handleUploadClick = () => {
-    navigate('/upload');
-  };
-
-  const handleVisualizeClick = (uploadId) => {
-    navigate(`/visualize/${uploadId}`);
-  };
-
-  const handleDeleteUpload = async (uploadId) => {
-    if (window.confirm('Are you sure you want to delete this file?')) {
-      try {
-        // TODO: Implement delete API call
-        toast.success('File deleted successfully');
-        // Refresh uploads list
-        const uploadsData = await getUserUploads();
-        setUploads(uploadsData);
-      } catch (error) {
-        toast.error('Failed to delete file');
-      }
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-pigmentgreen-500" aria-label="Loading" />
-      </div>
-    );
-  }
 
   return (
-    <div ref={dashboardRef} className="min-h-screen bg-black flex flex-col">
-      {/* Modern Glassy Navbar */}
-      <nav className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-4 h-20">
-        <div className="flex justify-between items-center gap-4 h-full">
-          {/* Left Capsule - Brand & Navigation */}
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-full shadow-2xl h-16 hover:bg-white/15 transition-all duration-300">
-            <div className="flex items-center h-full px-6 space-x-6">
-              <div className="flex items-center">
-                <span className="text-xl font-semibold text-white">Excelify</span>
+    <div
+      ref={cardRef}
+      className={`
+        relative group backdrop-blur-lg border rounded-2xl transition-all duration-500 
+        ${variants[variant]} ${className}
+        overflow-hidden
+      `}
+      style={{
+        '--mouse-x': '50%',
+        '--mouse-y': '50%',
+      }}
+      {...props}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition duration-300 z-10"
+        style={{
+          background:
+            'radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(34, 197, 94, 0.15), transparent 40%)',
+        }}
+      ></div>
+      <div className="relative z-10">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Loading Skeleton Component
+function SkeletonLoader({ className = '', lines = 1 }) {
+  return (
+    <div className={`animate-pulse ${className}`}>
+      {[...Array(lines)].map((_, i) => (
+        <div key={i} className="h-4 bg-white/10 rounded mb-2 last:mb-0" />
+      ))}
+    </div>
+  );
+}
+
+// Toast Notification Component
+function Toast({ message, type = 'info', onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const types = {
+    success: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400',
+    error: 'bg-red-500/20 border-red-500/30 text-red-400',
+    warning: 'bg-amber-500/20 border-amber-500/30 text-amber-400',
+    info: 'bg-blue-500/20 border-blue-500/30 text-blue-400'
+  };
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 p-4 rounded-xl border backdrop-blur-xl ${types[type]} animate-in slide-in-from-top-2`}>
+      <p className="text-sm font-medium">{message}</p>
+    </div>
+  );
+}
+
+function Dashboard() {
+  const navigate = useNavigate();
+  const dashboardRef = useRef(null);
+  const statsRef = useRef([]);
+  const filesRef = useRef([]);
+  
+  // State management
+  const [user, setUser] = useState(null);
+  const [uploads, setUploads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Initialize animations and data
+  useEffect(() => {
+    const initializeDashboard = async () => {
+      try {
+        // Fetch user profile
+        const userProfile = await authService.getProfile();
+        setUser(userProfile);
+        
+        // Load uploads
+        await loadUploads();
+        
+        // Initialize animations
+        initializeAnimations();
+        
+        // Show welcome toast
+        showToast(`Welcome back, ${userProfile?.name?.split(' ')[0] || 'User'}!`, 'success');
+      } catch (error) {
+        console.error('Failed to initialize dashboard:', error);
+        showToast('Failed to load dashboard. Please try again.', 'error');
+        navigate('/login');
+      }
+    };
+
+    initializeDashboard();
+  }, [navigate]);
+
+  // Modern GSAP animations
+  const initializeAnimations = () => {
+    // Stagger animation for stats cards
+    gsap.fromTo(statsRef.current,
+      { y: 50, opacity: 0, scale: 0.9 },
+      { 
+        y: 0, 
+        opacity: 1, 
+        scale: 1,
+        duration: 0.8,
+        stagger: 0.1,
+        ease: "back.out(1.7)",
+        delay: 0.2
+      }
+    );
+
+    // Files list animation
+    gsap.fromTo(filesRef.current,
+      { x: 100, opacity: 0 },
+      { 
+        x: 0, 
+        opacity: 1,
+        duration: 1,
+        ease: "power3.out",
+        delay: 0.5
+      }
+    );
+  };
+
+  // Add refs to arrays
+  const addStatsRef = (el) => {
+    if (el && !statsRef.current.includes(el)) {
+      statsRef.current.push(el);
+    }
+  };
+
+  const addFilesRef = (el) => {
+    if (el && !filesRef.current.includes(el)) {
+      filesRef.current.push(el);
+    }
+  };
+
+  // Toast notification handler
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type, id: Date.now() });
+  };
+
+  // Enhanced file upload with better error handling
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    
+    // Validate file type
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+      showToast('Please upload a valid Excel file (.xlsx or .xls)', 'error');
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('File size must be less than 10MB', 'error');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Smooth progress animation
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + Math.random() * 20;
+        });
+      }, 100);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      await uploadExcelFile(formData);
+      setUploadProgress(100);
+      
+      // Success animation and reload
+      setTimeout(async () => {
+        setIsUploading(false);
+        setUploadProgress(0);
+        await loadUploads();
+        showToast('File uploaded successfully!', 'success');
+        
+        // Celebrate animation
+        gsap.fromTo(statsRef.current,
+          { scale: 1 },
+          { 
+            scale: 1.05, 
+            duration: 0.3, 
+            yoyo: true, 
+            repeat: 1,
+            ease: "power2.inOut"
+          }
+        );
+      }, 800);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
+      showToast(error.message || 'Upload failed. Please try again.', 'error');
+    }
+  };
+
+  // Enhanced data loading with error handling
+  const loadUploads = async () => {
+    try {
+      setLoading(true);
+      const data = await getUserUploads();
+      setUploads(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading uploads:', error);
+      setUploads([]);
+      showToast('Failed to load files. Please refresh the page.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    handleFileUpload(files);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragOver(false);
+    }
+  };
+
+  // File operations with enhanced feedback
+  const handleRetryAnalysis = async (uploadId, fileName) => {
+    try {
+      await retryAnalysis(uploadId);
+      showToast(`Retrying analysis for ${fileName}`, 'info');
+      await loadUploads();
+    } catch (error) {
+      console.error('Error retrying analysis:', error);
+      showToast('Failed to retry analysis. Please try again.', 'error');
+    }
+  };
+
+  const handleDeleteUpload = async (uploadId, fileName) => {
+    if (!window.confirm(`Are you sure you want to delete "${fileName}"?`)) return;
+    
+    try {
+      await deleteUpload(uploadId);
+      showToast(`Successfully deleted ${fileName}`, 'success');
+      await loadUploads();
+      
+      // Animate remaining items
+      gsap.fromTo(filesRef.current,
+        { x: -20, opacity: 0.8 },
+        { x: 0, opacity: 1, duration: 0.5, stagger: 0.05 }
+      );
+    } catch (error) {
+      console.error('Error deleting upload:', error);
+      showToast('Failed to delete file. Please try again.', 'error');
+    }
+  };
+
+  // Enhanced status info with better colors
+  const getStatusInfo = (upload) => {
+    if (upload.isAnalyzed) {
+      return {
+        status: 'completed',
+        icon: <FiCheck className="text-emerald-400" />,
+        color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        label: 'Complete'
+      };
+    } else if (upload.analysisError) {
+      return {
+        status: 'failed',
+        icon: <FiAlertTriangle className="text-red-400" />,
+        color: 'bg-red-500/10 text-red-400 border-red-500/20',
+        label: 'Failed'
+      };
+    } else {
+      return {
+        status: 'processing',
+        icon: <FiClock className="text-amber-400 animate-spin" />,
+        color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+        label: 'Processing'
+      };
+    }
+  };
+
+  // Smart filtering with search
+  const filteredUploads = uploads.filter(upload => {
+    const fileName = upload.originalName || upload.filename || '';
+    const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (statusFilter === 'all') return matchesSearch;
+    
+    const statusInfo = getStatusInfo(upload);
+    return matchesSearch && statusInfo.status === statusFilter;
+  });
+
+  // Dynamic stats calculation
+  const stats = {
+    total: uploads.length,
+    completed: uploads.filter(u => u.isAnalyzed).length,
+    processing: uploads.filter(u => !u.isAnalyzed && !u.analysisError).length,
+    failed: uploads.filter(u => u.analysisError).length
+  };
+
+  // Enhanced logout with confirmation
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      authService.logout();
+      showToast('Successfully logged out', 'success');
+      setTimeout(() => navigate('/'), 1000);
+    }
+  };
+
+  // File size formatter
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'Unknown size';
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  // Time ago formatter
+  const timeAgo = (date) => {
+    const now = new Date();
+    const uploadDate = new Date(date);
+    const diffInHours = Math.floor((now - uploadDate) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+    return uploadDate.toLocaleDateString();
+  };
+
+  return (
+    <div 
+      ref={dashboardRef}
+      className="min-h-screen bg-black overflow-hidden relative"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-600/10 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-gradient-to-br from-emerald-500/10 to-teal-600/10 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
+
+      {/* Toast notifications */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
+
+      {/* Drag overlay with modern design */}
+      {isDragOver && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center">
+          <GlassCard className="p-12 text-center animate-in zoom-in-95 duration-300">
+            <div className="relative">
+              <FiUpload className="mx-auto mb-6 text-7xl text-blue-400 animate-bounce" />
+              <div className="absolute inset-0 animate-ping">
+                <FiUpload className="mx-auto mb-6 text-7xl text-blue-400/30" />
               </div>
-              <div className="hidden md:flex items-center space-x-6">
-                {['Overview', 'Files', 'Analytics', 'Reports'].map((tab, idx) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(idx)}
-                    onKeyDown={handleTabKeyDown}
-                    className={`font-medium text-base transition-all duration-300 outline-none relative ${activeTab === idx ? 'text-pigmentgreen-400' : 'text-white/70 hover:text-white'}`}
-                    aria-selected={activeTab === idx}
-                    aria-controls={`dashboard-tabpanel-${idx}`}
-                    tabIndex={0}
-                    role="tab"
-                  >
-                    {tab}
-                    {activeTab === idx && (
-                      <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 rounded-full"></div>
-                    )}
-                  </button>
-                ))}
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Drop your Excel file</h3>
+            <p className="text-gray-400">Release to upload and analyze</p>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Enhanced Modern Header */}
+      <header className="relative z-10 h-20 bg-white/5 backdrop-blur-lg border-b border-white/10">
+        {/* Animated background pattern */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-emerald-500/5 animate-pulse" />
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
+        </div>
+        
+        <div className="relative h-full px-6 flex items-center justify-between">
+          {/* Left - Enhanced Brand */}
+          <div className="flex items-center space-x-4">
+            <div className="relative group">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-500 rounded-2xl flex items-center justify-center relative overflow-hidden shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 transition-all duration-300">
+                <FiBarChart className="text-white text-xl relative z-10 group-hover:scale-110 transition-transform duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
+                <div className="absolute -inset-1 bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-500 rounded-2xl opacity-0 group-hover:opacity-20 blur transition-opacity duration-300" />
               </div>
+            </div>
+            <div className="group">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent group-hover:from-emerald-400 group-hover:via-teal-400 group-hover:to-emerald-400 transition-all duration-500">
+                Excel Analytics
+              </h1>
+              <p className="text-gray-400 text-sm font-medium">
+                {user?.name ? (
+                  <span className="flex items-center space-x-2">
+                    <span>Welcome back, {user.name.split(' ')[0]}!</span>
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  </span>
+                ) : (
+                  'Professional Dashboard'
+                )}
+              </p>
             </div>
           </div>
           
-          {/* Right Capsule - User Menu */}
-          <div className="relative user-menu-container">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-full shadow-2xl h-16 hover:bg-white/15 transition-all duration-300">
-              <div className="flex items-center h-full px-6 space-x-4">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center focus:outline-none focus:ring-2 focus:ring-pigmentgreen-500 focus:ring-offset-2 focus:ring-offset-black rounded-full p-1 group transition-all duration-200"
-                  aria-label="User menu"
-                  aria-haspopup="true"
-                  aria-expanded={showUserMenu}
-                >
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 flex items-center justify-center border-2 border-white/20 shadow-lg group-hover:scale-105 transition-all duration-200">
-                    <span className="text-white font-bold text-lg">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                  </div>
-                  <svg 
-                    className={`ml-3 w-4 h-4 text-white/70 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
+          {/* Center - Enhanced Navigation */}
+          <nav className="hidden lg:flex items-center space-x-2 bg-white/5 backdrop-blur-xl rounded-2xl p-2 border border-white/10">
+            <button 
+              onClick={() => navigate('/dashboard')} 
+              className="px-4 py-2 rounded-xl bg-emerald-500/10 text-white font-medium text-sm shadow-lg border border-emerald-500/20 flex items-center space-x-2"
+            >
+              <FiGrid className="text-sm" />
+              <span>Dashboard</span>
+            </button>
+            <button 
+              onClick={() => navigate('/analytics')} 
+              className="px-4 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all duration-200 text-sm font-medium flex items-center space-x-2 border border-transparent"
+            >
+              <FiActivity className="text-sm" />
+              <span>Analytics</span>
+            </button>
+            <button 
+              onClick={() => navigate('/reports')} 
+              className="px-4 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all duration-200 text-sm font-medium flex items-center space-x-2 border border-transparent"
+            >
+              <FiFileText className="text-sm" />
+              <span>Reports</span>
+            </button>
+            <button 
+              onClick={() => navigate('/visualize')} 
+              className="px-4 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all duration-200 text-sm font-medium flex items-center space-x-2 border border-transparent"
+            >
+              <FiPieChart className="text-sm" />
+              <span>Visualize</span>
+            </button>
+          </nav>
+          
+          {/* Right - Enhanced Actions */}
+          <div className="flex items-center space-x-3">
+            {/* Search */}
+            <div className="hidden md:block relative">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+              <input
+                type="text"
+                placeholder="Quick search..."
+                className="pl-9 pr-4 py-2 w-48 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-emerald-400/50 focus:bg-white/15 transition-all duration-200 text-sm backdrop-blur-xl"
+              />
             </div>
-            
-            {showUserMenu && (
-              <div className="absolute right-0 top-full mt-3 w-72 bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl py-3 z-50 border border-white/20 transform transition-all duration-200 ease-out animate-in slide-in-from-top-2">
-                <div className="px-6 py-4 border-b border-white/10 text-center">
-                  <p className="text-lg font-semibold text-white">{user?.name}</p>
-                  <p className="text-sm text-white/60 truncate mt-1">{user?.email}</p>
+
+            {/* Notifications with enhanced styling */}
+            <div className="relative">
+              <button className="p-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200 relative group">
+                <FiBell className="text-lg group-hover:animate-pulse" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-red-500 to-pink-500 rounded-full animate-pulse flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">{notifications.length}</span>
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Enhanced User menu */}
+            <div className="relative">
+              <button 
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center space-x-3 px-4 py-2 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 border border-white/20 text-white transition-all duration-200 shadow-lg backdrop-blur-xl group"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 group-hover:scale-105 transition-all duration-300">
+                  <FiUser className="text-white text-sm" />
                 </div>
-                <div className="py-2">
-                  <button 
-                    onClick={goToProfile} 
-                    className="flex items-center w-full px-6 py-3 text-sm text-white/80 hover:bg-white/10 transition-colors duration-150"
-                  >
-                    <svg className="w-4 h-4 mr-3 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Your Profile
-                  </button>
-                  <button className="flex items-center w-full px-6 py-3 text-sm text-white/80 hover:bg-white/10 transition-colors duration-150">
-                    <svg className="w-4 h-4 mr-3 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Settings
-                  </button>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium">
+                    {user?.name?.split(' ')[0] || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-400">Premium</p>
                 </div>
-                <div className="border-t border-white/10 pt-2">
-                  <button 
-                    onClick={handleSignOut} 
-                    className="flex items-center w-full px-6 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors duration-150"
-                  >
-                    <svg className="w-4 h-4 mr-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Sign out
-                  </button>
+                <FiChevronDown className={`text-sm transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Enhanced User dropdown */}
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-3 w-56 bg-black/90 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl animate-in slide-in-from-top-2 z-50 overflow-hidden">
+                  {/* User info header */}
+                  <div className="p-4 bg-gradient-to-r from-blue-500/10 to-purple-600/10 border-b border-white/10">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
+                        <FiUser className="text-white text-sm" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium text-sm">{user?.name || 'User'}</p>
+                        <p className="text-gray-400 text-xs">{user?.email || 'user@example.com'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Menu items */}
+                  <div className="p-2">
+                    <button className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200 text-sm group">
+                      <FiUser className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                      <span>Profile</span>
+                    </button>
+                    <button className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200 text-sm group">
+                      <FiSettings className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                      <span>Settings</span>
+                    </button>
+                    <button className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200 text-sm group">
+                      <FiActivity className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                      <span>Activity</span>
+                    </button>
+                    <button className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200 text-sm group">
+                      <FiHelpCircle className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                      <span>Help & Support</span>
+                    </button>
+                    <hr className="my-2 border-white/10" />
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-3 px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all duration-200 text-sm group"
+                    >
+                      <FiLogOut className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </nav>
+      </header>
 
-      <main className="flex-grow pt-32 pb-12 px-4 max-w-7xl mx-auto w-full">
-        {/* Welcome Section - only for Overview */}
-        {activeTab === 0 && (
-          <section className="mb-16">
-            <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 lg:p-12 shadow-xl border border-white/20">
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-1 text-center md:text-left">
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-                    Welcome back, <span className="bg-gradient-to-r from-pigmentgreen-400 to-malachite-400 bg-clip-text text-transparent">{user?.name || 'User'}</span>!
-                  </h1>
-                  <p className="text-lg lg:text-xl text-white/80 mb-6 leading-relaxed">
-                    Transform your Excel data into powerful insights, visualizations, and reports—all in one place.
-                  </p>
-                  <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                    <span className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-sm text-white/90">Real-time Analysis</span>
-                    <span className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-sm text-white/90">Smart Visualization</span>
-                    <span className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-sm text-white/90">AI Insights</span>
-                    <span className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-sm text-white/90">Automated Reports</span>
-                  </div>
+      {/* Main Content with proper spacing and viewport optimization */}
+      <main className="h-[calc(100vh-5rem)] px-8 py-4 overflow-hidden">
+        <div className="h-full max-w-7xl mx-auto grid grid-cols-12 gap-8">
+          
+          {/* Left Sidebar - Upload & Quick Stats (Optimized for single viewport) */}
+          <div className="col-span-6 xl:col-span-6 space-y-4 overflow-hidden flex flex-col">
+            
+            {/* Enhanced Upload Zone - Compact for viewport fit */}
+            <GlassCard className="relative overflow-hidden group flex-shrink-0" variant="primary">
+              <div className="p-4">
+                <div className="text-center mb-3">
+                  <h3 className="text-base font-bold text-white mb-1 flex items-center justify-center space-x-2">
+                    <FiUpload className="text-emerald-400 text-sm" />
+                    <span>Upload Excel File</span>
+                  </h3>
+                  <p className="text-gray-400 text-xs">Drag and drop or click to select</p>
                 </div>
-                <div className="flex-1 flex justify-center md:justify-end">
-                  <div className="w-48 h-48 rounded-2xl bg-gradient-to-br from-pigmentgreen-500/20 to-malachite-500/20 flex items-center justify-center shadow-2xl border border-white/10">
-                    <svg className="w-32 h-32 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                      <rect x="8" y="8" width="32" height="32" rx="8" fill="currentColor" className="text-pigmentgreen-500/30" />
-                      <path d="M16 24h16M16 32h8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                      <rect x="16" y="16" width="16" height="8" rx="2" fill="white" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </SpotlightCard>
-          </section>
-        )}
-
-        {/* Tab Content */}
-        <section id={`dashboard-tabpanel-${activeTab}`} role="tabpanel" aria-labelledby={`dashboard-tab-${activeTab}`}> 
-          {activeTab === 0 && (
-            <>
-              {/* Stats Grid */}
-              <div ref={statsRef} className="w-full mb-16">
-                <h2 className="text-3xl lg:text-4xl font-bold text-white mb-8 text-left">Your Analytics Overview</h2>
-                {metricsLoading ? (
-                  <div className="flex items-center gap-3 text-white/60">
-                    <span className="animate-spin h-6 w-6 border-b-2 border-pigmentgreen-500 rounded-full"></span> 
-                    Loading metrics...
-                  </div>
-                ) : metricsError ? (
-                  <div className="text-red-400">{metricsError}</div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-xl flex items-center justify-center">
-                            <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <h3 className="text-lg font-medium text-white/70">Files</h3>
-                          <div className="mt-1 text-3xl font-bold text-white">{metrics.files}</div>
+                
+                <div className="border-2 border-dashed border-emerald-400/30 rounded-xl p-4 text-center hover:border-emerald-400/50 transition-all duration-300 group-hover:border-emerald-400/60 bg-gradient-to-br from-emerald-500/5 to-teal-600/5">
+                  {isUploading ? (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <FiUpload className="mx-auto text-3xl text-emerald-400 animate-pulse" />
+                        <div className="absolute inset-0 animate-ping">
+                          <FiUpload className="mx-auto text-3xl text-emerald-400/30" />
                         </div>
                       </div>
-                    </SpotlightCard>
-                    <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-br from-malachite-500 to-pigmentgreen-500 rounded-xl flex items-center justify-center">
-                            <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <h3 className="text-lg font-medium text-white/70">Sheets</h3>
-                          <div className="mt-1 text-3xl font-bold text-white">{metrics.sheets}</div>
-                        </div>
-                      </div>
-                    </SpotlightCard>
-                    <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-xl flex items-center justify-center">
-                            <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <h3 className="text-lg font-medium text-white/70">Data Points</h3>
-                          <div className="mt-1 text-3xl font-bold text-white">{metrics.dataPoints}</div>
-                        </div>
-                      </div>
-                    </SpotlightCard>
-                  </div>
-                )}
-              </div>
-
-              {/* Feature Cards */}
-              <div className="mb-16">
-                <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4 text-left">Powerful Features at Your Fingertips</h2>
-                <p className="text-lg text-white/80 mb-12 text-left leading-relaxed">Access these tools to transform your Excel data into valuable insights</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {dashboardCards.map((card, index) => (
-                    <SpotlightCard
-                      key={card.title}
-                      ref={(el) => (cardsRef.current[index] = el)}
-                      className={`bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] ${card.soon ? 'opacity-60' : 'cursor-pointer'}`}
-                      onClick={card.soon ? undefined : card.onClick}
-                    >
-                      <div className="flex flex-col h-full">
-                        <div className="flex items-start mb-6">
-                          <div className={`w-12 h-12 bg-gradient-to-br ${card.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                            <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={card.icon} />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-white mb-3">{card.title}</h3>
-                          <p className="text-white/70 mb-6 leading-relaxed">{card.description}</p>
-                        </div>
-                        <div className="mt-auto">
-                          <button
-                            disabled={card.soon}
-                            onClick={card.soon ? undefined : card.onClick}
-                            className={`w-full inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold transition-all duration-300 ${
-                              card.soon 
-                                ? 'bg-white/10 text-white/40 cursor-not-allowed' 
-                                : `bg-gradient-to-r ${card.color} text-white hover:shadow-xl hover:scale-[1.02]`
-                            }`}
+                      <div>
+                        <p className="text-white font-semibold text-sm">Uploading...</p>
+                        <p className="text-gray-400 text-xs mb-2">Processing your file</p>
+                        <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden backdrop-blur-sm">
+                          <div 
+                            className="bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 h-1.5 rounded-full transition-all duration-300 relative overflow-hidden"
+                            style={{ width: `${uploadProgress}%` }}
                           >
-                            {card.action}
-                            {card.soon && <span className="ml-2 text-xs">(Coming Soon)</span>}
-                          </button>
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-pulse" />
+                          </div>
+                        </div>
+                        <p className="text-emerald-400 text-xs mt-1 font-medium">{Math.round(uploadProgress)}%</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <FiUpload className="mx-auto text-4xl text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </div>
+                      <div>
+                        <p className="text-white font-semibold text-sm mb-1">Drop Excel File Here</p>
+                        <p className="text-gray-400 text-xs mb-2">or click below to browse</p>
+                        <div className="flex justify-center space-x-1 mb-2">
+                          <span className="inline-flex items-center px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">
+                            .xlsx
+                          </span>
+                          <span className="inline-flex items-center px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">
+                            .xls
+                          </span>
                         </div>
                       </div>
-                    </SpotlightCard>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={(e) => handleFileUpload(e.target.files)}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <label
+                        htmlFor="file-upload"
+                        className="inline-flex items-center space-x-2 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/25 text-xs font-semibold group"
+                      >
+                        <FiPlus className="text-sm group-hover:rotate-90 transition-transform duration-300" />
+                        <span>Choose File</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">Max: 10MB</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* Stats and Quick Actions Combined - Viewport optimized */}
+            <div className="flex-1 min-h-0 space-y-4">
+              {/* Enhanced Stats Grid - 2x2 layout for better viewport fit */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'total', label: 'Total Files', value: stats.total, icon: FiDatabase, color: 'emerald', variant: 'primary' },
+                  { key: 'completed', label: 'Completed', value: stats.completed, icon: FiCheck, color: 'emerald', variant: 'success' },
+                  { key: 'processing', label: 'Processing', value: stats.processing, icon: FiClock, color: 'amber', variant: 'warning' },
+                  { key: 'failed', label: 'Failed', value: stats.failed, icon: FiAlertTriangle, color: 'red', variant: 'danger' }
+                ].map((stat) => (
+                  <GlassCard 
+                    key={stat.key}
+                    ref={addStatsRef}
+                    className="p-3 hover:scale-[1.02] transition-all duration-300 group"
+                    variant={stat.variant}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-gray-400 text-xs font-medium mb-0.5">{stat.label}</p>
+                        <p className={`text-xl font-bold text-${stat.color}-400 tabular-nums group-hover:scale-110 transition-transform duration-300`}>
+                          {stat.value}
+                        </p>
+                      </div>
+                      <div className={`p-1.5 rounded-lg bg-${stat.color}-500/10 group-hover:bg-${stat.color}-500/20 transition-colors duration-300`}>
+                        <stat.icon className={`text-base text-${stat.color}-400 group-hover:scale-110 transition-transform duration-300`} />
+                      </div>
+                    </div>
+                  </GlassCard>
+                ))}
+              </div>
+
+              {/* Quick Actions - Compact for viewport */}
+              <GlassCard className="p-4 flex-1" variant="default">
+                <h3 className="text-base font-bold text-white mb-3 flex items-center space-x-2">
+                  <FiZap className="text-amber-400 text-sm" />
+                  <span>Quick Actions</span>
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { icon: FiActivity, label: 'Analytics', path: '/analytics', color: 'emerald', description: 'Data insights' },
+                    { icon: FiFileText, label: 'Reports', path: '/reports', color: 'teal', description: 'Detailed reports' },
+                    { icon: FiPieChart, label: 'Visualize', path: '/visualize', color: 'emerald', description: 'Interactive charts' }
+                  ].map((action) => (
+                    <button
+                      key={action.path}
+                      onClick={() => navigate(action.path)}
+                      className="w-full flex items-center space-x-3 p-2.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 rounded-lg text-white transition-all duration-300 text-xs group hover:scale-[1.02]"
+                    >
+                      <div className={`p-1.5 rounded-lg bg-${action.color}-500/10 group-hover:bg-${action.color}-500/20 transition-colors duration-300`}>
+                        <action.icon className={`text-sm text-${action.color}-400 group-hover:scale-110 transition-transform duration-300`} />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-white group-hover:text-gray-100 text-xs">{action.label}</p>
+                        <p className="text-xs text-gray-400 group-hover:text-gray-300">{action.description}</p>
+                      </div>
+                      <FiChevronDown className="text-gray-400 rotate-[-90deg] group-hover:translate-x-1 transition-transform duration-300 text-xs" />
+                    </button>
                   ))}
                 </div>
-              </div>
-            </>
-          )}
-
-          {/* Files Tab */}
-          {activeTab === 1 && (
-            <div className="min-h-[60vh] py-10">
-              {uploadsLoading ? (
-                <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pigmentgreen-500 mx-auto"></div>
-                    <p className="mt-4 text-white/70">Loading your files...</p>
-                  </div>
-                </SpotlightCard>
-              ) : uploads.length === 0 ? (
-                <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-4">No files uploaded yet</h3>
-                    <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
-                      Get started by uploading an Excel file to begin analyzing your data and unlocking powerful insights.
-                    </p>
-                    <button
-                      onClick={handleUploadClick}
-                      className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                    >
-                      Upload Your First File
-                      <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                    </button>
-                  </div>
-                </SpotlightCard>
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-white">Your Files</h2>
-                    <button
-                      onClick={handleUploadClick}
-                      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                    >
-                      Upload New File
-                      <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {uploads.map((upload) => {
-                      const dataPoints = upload.jsonData ? 
-                        (typeof upload.jsonData === 'string' ? JSON.parse(upload.jsonData) : upload.jsonData).length : 0;
-                      
-                      return (
-                        <SpotlightCard
-                          key={upload._id}
-                          className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
-                        >
-                          <div className="flex flex-col h-full">
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="w-12 h-12 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-xl flex items-center justify-center">
-                                <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                              </div>
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={() => handleVisualizeClick(upload._id)}
-                                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                                  title="Visualize Data"
-                                >
-                                  <FaChartLine className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUpload(upload._id)}
-                                  className="p-2 text-white/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                                  title="Delete File"
-                                >
-                                  <FaTrash className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-white mb-2 truncate">
-                                {upload.originalName}
-                              </h3>
-                              <div className="space-y-2 text-sm text-white/70">
-                                <div className="flex justify-between">
-                                  <span>Data Points:</span>
-                                  <span className="font-medium">{dataPoints}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Uploaded:</span>
-                                  <span className="font-medium">
-                                    {new Date(upload.createdAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Size:</span>
-                                  <span className="font-medium">
-                                    {upload.fileSize ? `${(upload.fileSize / 1024).toFixed(1)} KB` : 'N/A'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="mt-4 pt-4 border-t border-white/10">
-                              <button
-                                onClick={() => handleVisualizeClick(upload._id)}
-                                className="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                              >
-                                <FaChartLine className="mr-2 w-4 h-4" />
-                                Visualize Data
-                              </button>
-                            </div>
-                          </div>
-                        </SpotlightCard>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              </GlassCard>
             </div>
-          )}
+          </div>
 
-          {/* Analytics Tab */}
-          {activeTab === 2 && (
-            <div className="min-h-[60vh] py-10">
-              {uploads.length === 0 ? (
-                <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-malachite-500 to-pigmentgreen-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-4">No analytics available</h3>
-                    <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
-                      Upload an Excel file to begin analyzing your data and unlocking powerful visualizations.
-                    </p>
-                    <button
-                      onClick={handleUploadClick}
-                      className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-malachite-500 to-pigmentgreen-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                    >
-                      Start Analyzing
-                      <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </button>
+          {/* Right Column - Files Management (Balanced width with proper spacing) */}
+          <div className="col-span-6 xl:col-span-6 flex flex-col h-full">
+            
+            {/* Files Header - Ultra compact for viewport */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 space-y-2 lg:space-y-0 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  Your Files
+                </h2>
+                <p className="text-gray-400 text-xs">
+                  {filteredUploads.length} of {uploads.length} files
+                  {searchTerm && ` matching "${searchTerm}"`}
+                </p>
+              </div>
+              
+              {/* Search and Filter - Ultra compact */}
+              <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <FiSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-7 pr-2 py-1.5 bg-white/[0.02] border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-400/50 focus:bg-white/[0.05] transition-all duration-200 text-xs w-32 backdrop-blur-xl"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <FiFilter className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="pl-7 pr-5 py-1.5 bg-white/[0.02] border border-white/10 rounded-lg text-white focus:outline-none focus:border-emerald-400/50 focus:bg-white/[0.05] transition-all duration-200 text-xs backdrop-blur-xl appearance-none cursor-pointer"
+                  >
+                    <option value="all">All</option>
+                    <option value="completed">Done</option>
+                    <option value="processing">Processing</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                  <FiChevronDown className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs" />
+                </div>
+              </div>
+            </div>
+
+            {/* Files Container - Optimized for single viewport */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+              {loading ? (
+                <GlassCard className="p-3 text-center">
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full"></div>
+                    <p className="text-gray-400 text-xs">Loading files...</p>
                   </div>
-                </SpotlightCard>
-              ) : (
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-bold text-white">Data Analytics</h2>
-                  <p className="text-white/70">Select a file from the Files tab to start visualizing your data with interactive charts and graphs.</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {uploads.slice(0, 3).map((upload) => (
-                      <SpotlightCard
-                        key={upload._id}
-                        className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                        onClick={() => handleVisualizeClick(upload._id)}
-                      >
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-gradient-to-br from-malachite-500 to-pigmentgreen-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <FaChartLine className="w-6 h-6 text-white" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-white mb-2 truncate">
-                            {upload.originalName}
-                          </h3>
-                          <p className="text-white/70 text-sm mb-4">
-                            Click to visualize this data
-                          </p>
-                          <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-malachite-500 to-pigmentgreen-500 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200">
-                            <FaChartLine className="mr-2 w-4 h-4" />
-                            Visualize
-                          </button>
-                        </div>
-                      </SpotlightCard>
+                  <div className="mt-2 space-y-1">
+                    {[...Array(3)].map((_, i) => (
+                      <SkeletonLoader key={i} className="h-8" />
                     ))}
                   </div>
+                </GlassCard>
+              ) : filteredUploads.length === 0 ? (
+                <GlassCard className="p-6 text-center flex-1 flex items-center justify-center">
+                  <div className="space-y-3">
+                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-gray-600/20 to-gray-700/20 rounded-lg flex items-center justify-center">
+                      <FiFileText className="text-2xl text-gray-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white mb-1">
+                        {uploads.length === 0 ? 'No files uploaded' : 'No matches found'}
+                      </h3>
+                      <p className="text-gray-400 text-xs">
+                        {uploads.length === 0 
+                          ? 'Upload your first Excel file to get started'
+                          : 'Try adjusting your search or filter'
+                        }
+                      </p>
+                    </div>
+                    {uploads.length === 0 && (
+                      <button
+                        onClick={() => document.getElementById('file-upload').click()}
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-medium hover:scale-105 transition-all duration-200 text-xs"
+                      >
+                        <FiPlus className="text-xs" />
+                        <span>Upload File</span>
+                      </button>
+                    )}
+                  </div>
+                </GlassCard>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredUploads.map((upload, index) => {
+                    const statusInfo = getStatusInfo(upload);
+                    const fileName = upload.originalName || upload.filename || 'Unknown file';
+                    
+                    return (
+                      <SpotlightCard 
+                        key={upload._id} 
+                        ref={addFilesRef}
+                        className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all duration-300 cursor-pointer group"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2.5 flex-1 min-w-0">
+                            {/* File Icon - Ultra compact */}
+                            <div className="relative">
+                              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                                <FiFileText className="text-white text-sm" />
+                              </div>
+                              <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-gray-900 ${
+                                statusInfo.status === 'completed' ? 'bg-emerald-500' :
+                                statusInfo.status === 'failed' ? 'bg-red-500' : 'bg-amber-500'
+                              }`} />
+                            </div>
+                            
+                            {/* File Info - Ultra compact */}
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-white font-semibold text-xs truncate group-hover:text-emerald-400 transition-colors duration-200">
+                                {fileName}
+                              </h3>
+                              <div className="flex items-center space-x-2 mt-0.5">
+                                <p className="text-gray-400 text-xs">
+                                  {timeAgo(upload.createdAt || upload.uploadedAt)}
+                                </p>
+                                {upload.fileSize && (
+                                  <>
+                                    <span className="text-gray-600 text-xs">•</span>
+                                    <p className="text-gray-400 text-xs">
+                                      {formatFileSize(upload.fileSize)}
+                                    </p>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Status and Actions - Ultra compact */}
+                          <div className="flex items-center space-x-1.5 flex-shrink-0">
+                            {/* Status Badge - Ultra compact */}
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-semibold border backdrop-blur-sm ${statusInfo.color}`}>
+                              <span className="flex items-center space-x-0.5">
+                                <span className="text-xs">{statusInfo.icon}</span>
+                                <span className="hidden sm:inline text-xs">{statusInfo.label}</span>
+                              </span>
+                            </span>
+                            
+                            {/* Action Buttons - Ultra compact */}
+                            <div className="flex items-center space-x-0.5">
+                              {upload.isAnalyzed && (
+                                <button
+                                  onClick={() => navigate(`/visualize/${upload._id}`)}
+                                  className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded transition-all duration-200 hover:scale-110 group/btn"
+                                  title="View Analytics"
+                                >
+                                  <FiEye className="text-xs group-hover/btn:scale-110 transition-transform duration-200" />
+                                </button>
+                              )}
+                              
+                              {upload.analysisError && (
+                                <button
+                                  onClick={() => handleRetryAnalysis(upload._id, fileName)}
+                                  className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded transition-all duration-200 hover:scale-110 group/btn"
+                                  title="Retry Analysis"
+                                >
+                                  <FiRefreshCw className="text-xs group-hover/btn:scale-110 transition-transform duration-200" />
+                                </button>
+                              )}
+                              
+                              {/* More Options - Ultra compact */}
+                              <div className="relative group/menu">
+                                <button className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded transition-all duration-200 hover:scale-110">
+                                  <FiMoreVertical className="text-xs" />
+                                </button>
+                                
+                                {/* Dropdown Menu - Ultra compact */}
+                                <div className="absolute right-0 top-full mt-1 w-28 bg-black/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-200 z-10">
+                                  <div className="p-1">
+                                    <button className="w-full flex items-center space-x-1.5 px-2 py-1 text-gray-300 hover:text-white hover:bg-white/10 rounded text-xs">
+                                      <FiDownload className="text-xs" />
+                                      <span>Download</span>
+                                    </button>
+                                    <hr className="my-0.5 border-white/10" />
+                                    <button 
+                                      onClick={() => handleDeleteUpload(upload._id, fileName)}
+                                      className="w-full flex items-center space-x-1.5 px-2 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded text-xs"
+                                    >
+                                      <FiTrash2 className="text-xs" />
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </SpotlightCard>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          )}
-
-          {/* Reports Tab */}
-          {activeTab === 3 && (
-            <div className="min-h-[60vh] py-10">
-              <SpotlightCard className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/20">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-pigmentgreen-500 to-malachite-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-4">No reports yet</h3>
-                  <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
-                    Start by analyzing your data to generate professional and shareable reports.
-                  </p>
-                  <button
-                    onClick={handleUploadClick}
-                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pigmentgreen-500 to-malachite-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                  >
-                    Generate Reports
-                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </button>
-                </div>
-              </SpotlightCard>
-            </div>
-          )}
-        </section>
+          </div>
+        </div>
       </main>
-      <Footer variant="dark" />
+
+      {/* Click outside handler for user menu */}
+      {userMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setUserMenuOpen(false)}
+        />
+      )}
     </div>
   );
-};
+}
 
 export default Dashboard;
-

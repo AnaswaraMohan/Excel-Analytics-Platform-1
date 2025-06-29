@@ -39,6 +39,9 @@ app.use(passport.session());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/users', require('./routes/usersRoutes'));
+app.use('/api/charts', require('./routes/chartRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/reports', require('./routes/reportsRoutes'));
 
 // Test route
 app.get('/', (req, res) => {

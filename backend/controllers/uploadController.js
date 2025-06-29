@@ -3,8 +3,9 @@ const xlsx = require('xlsx');
 const fs = require('fs');
 const path = require('path');
 const Upload = require('../models/Upload');
+const analyticsService = require('../services/analyticsService');
 
-// @desc    Upload and parse Excel file
+// @desc    Upload and parse Excel file with auto-analysis
 // @route   POST /api/upload
 // @access  Private
 const uploadExcel = asyncHandler(async (req, res) => {
@@ -17,6 +18,8 @@ const uploadExcel = asyncHandler(async (req, res) => {
     const filePath = req.file.path;
     const originalName = req.file.originalname;
     const filename = req.file.filename;
+    const fileSize = req.file.size;
+    const mimeType = req.file.mimetype;
 
     // Read the Excel file
     const workbook = xlsx.readFile(filePath);
@@ -39,17 +42,34 @@ const uploadExcel = asyncHandler(async (req, res) => {
       return sanitizedRow;
     });
 
-    // Save to database
+    // Save to database with new schema
     const upload = await Upload.create({
       user: req.user.id,
       filename: filename,
       originalName: originalName,
-      parsedData: parsedData
+      parsedData: parsedData, // Keep for backward compatibility
+      jsonData: parsedData, // New structured field
+      fileSize: fileSize,
+      mimeType: mimeType,
+      analysisStatus: 'pending'
     });
 
-    // Delete the uploaded file after processing (optional)
+    // Delete the uploaded file after processing (keep database permanently)
     fs.unlink(filePath, (err) => {
       if (err) console.error('Error deleting file:', err);
+    });
+
+    // Start automatic analysis in background
+    setImmediate(async () => {
+      try {
+        await performAutoAnalysis(upload._id, parsedData);
+      } catch (error) {
+        console.error('Auto-analysis failed:', error);
+        await Upload.findByIdAndUpdate(upload._id, {
+          analysisStatus: 'failed',
+          analysisResults: { error: error.message }
+        });
+      }
     });
 
     // Send response with preview data (first 10 rows)
@@ -57,13 +77,15 @@ const uploadExcel = asyncHandler(async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: 'File uploaded and processed successfully',
+      message: 'File uploaded successfully. Analysis started in background.',
       data: {
         uploadId: upload._id,
         originalName: originalName,
         totalRows: parsedData.length,
         previewData: previewData,
-        columns: parsedData.length > 0 ? Object.keys(parsedData[0]) : []
+        columns: parsedData.length > 0 ? Object.keys(parsedData[0]) : [],
+        fileSize: fileSize,
+        analysisStatus: 'pending'
       }
     });
 
@@ -80,20 +102,64 @@ const uploadExcel = asyncHandler(async (req, res) => {
   }
 });
 
+// Perform automatic analysis
+const performAutoAnalysis = async (uploadId, jsonData) => {
+  try {
+    // Update status to processing
+    await Upload.findByIdAndUpdate(uploadId, {
+      analysisStatus: 'processing'
+    });
+
+    // Perform comprehensive analysis
+    const analysisResults = await analyticsService.analyzeData(jsonData, {
+      uploadId: uploadId
+    });
+
+    // Generate AI insights
+    const aiInsights = await analyticsService.generateInsights(analysisResults, {
+      uploadId: uploadId,
+      rowCount: jsonData.length,
+      columnCount: Object.keys(jsonData[0] || {}).length
+    });
+
+    // Update upload record with analysis results
+    await Upload.findByIdAndUpdate(uploadId, {
+      analysisStatus: 'completed',
+      isAnalyzed: true,
+      analysisResults: analysisResults,
+      aiInsights: aiInsights,
+      lastAnalyzedAt: new Date()
+    });
+
+    console.log(`Auto-analysis completed for upload ${uploadId}`);
+  } catch (error) {
+    console.error(`Auto-analysis failed for upload ${uploadId}:`, error);
+    await Upload.findByIdAndUpdate(uploadId, {
+      analysisStatus: 'failed',
+      analysisResults: { error: error.message, failedAt: new Date() }
+    });
+  }
+};
+
 // @desc    Get user's uploaded files
 // @route   GET /api/upload
 // @access  Private
 const getUserUploads = asyncHandler(async (req, res) => {
   const uploads = await Upload.find({ user: req.user.id })
-    .select('originalName uploadedAt parsedData')
+    .select('originalName uploadedAt jsonData fileSize analysisStatus isAnalyzed lastAnalyzedAt createdAt')
     .sort({ uploadedAt: -1 });
 
   const uploadsWithStats = uploads.map(upload => ({
     _id: upload._id,
     originalName: upload.originalName,
     uploadedAt: upload.uploadedAt,
-    totalRows: upload.parsedData.length,
-    columns: upload.parsedData.length > 0 ? Object.keys(upload.parsedData[0]) : []
+    createdAt: upload.createdAt,
+    totalRows: upload.jsonData ? upload.jsonData.length : 0,
+    columns: upload.jsonData && upload.jsonData.length > 0 ? Object.keys(upload.jsonData[0]) : [],
+    fileSize: upload.fileSize,
+    analysisStatus: upload.analysisStatus,
+    isAnalyzed: upload.isAnalyzed,
+    lastAnalyzedAt: upload.lastAnalyzedAt
   }));
 
   res.json({
@@ -102,7 +168,7 @@ const getUserUploads = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get specific upload data
+// @desc    Get specific upload data with analysis results
 // @route   GET /api/upload/:id
 // @access  Private
 const getUploadById = asyncHandler(async (req, res) => {
@@ -122,9 +188,78 @@ const getUploadById = asyncHandler(async (req, res) => {
       _id: upload._id,
       originalName: upload.originalName,
       uploadedAt: upload.uploadedAt,
-      totalRows: upload.parsedData.length,
-      columns: upload.parsedData.length > 0 ? Object.keys(upload.parsedData[0]) : [],
-      parsedData: upload.parsedData
+      createdAt: upload.createdAt,
+      totalRows: upload.jsonData ? upload.jsonData.length : 0,
+      columns: upload.jsonData && upload.jsonData.length > 0 ? Object.keys(upload.jsonData[0]) : [],
+      jsonData: upload.jsonData,
+      fileSize: upload.fileSize,
+      mimeType: upload.mimeType,
+      analysisStatus: upload.analysisStatus,
+      isAnalyzed: upload.isAnalyzed,
+      analysisResults: upload.analysisResults,
+      aiInsights: upload.aiInsights,
+      lastAnalyzedAt: upload.lastAnalyzedAt,
+      reports: upload.reports || []
+    }
+  });
+});
+
+// @desc    Delete upload and all associated data
+// @route   DELETE /api/upload/:id
+// @access  Private
+const deleteUpload = asyncHandler(async (req, res) => {
+  const upload = await Upload.findOne({ 
+    _id: req.params.id, 
+    user: req.user.id 
+  });
+
+  if (!upload) {
+    res.status(404);
+    throw new Error('Upload not found');
+  }
+
+  await Upload.findByIdAndDelete(req.params.id);
+
+  res.json({
+    success: true,
+    message: 'Upload deleted successfully'
+  });
+});
+
+// @desc    Retry analysis for failed uploads
+// @route   POST /api/upload/:id/analyze
+// @access  Private
+const retryAnalysis = asyncHandler(async (req, res) => {
+  const upload = await Upload.findOne({ 
+    _id: req.params.id, 
+    user: req.user.id 
+  });
+
+  if (!upload) {
+    res.status(404);
+    throw new Error('Upload not found');
+  }
+
+  if (!upload.jsonData || upload.jsonData.length === 0) {
+    res.status(400);
+    throw new Error('No data available for analysis');
+  }
+
+  // Start analysis in background
+  setImmediate(async () => {
+    try {
+      await performAutoAnalysis(upload._id, upload.jsonData);
+    } catch (error) {
+      console.error('Retry analysis failed:', error);
+    }
+  });
+
+  res.json({
+    success: true,
+    message: 'Analysis restarted successfully',
+    data: {
+      uploadId: upload._id,
+      analysisStatus: 'pending'
     }
   });
 });
@@ -132,5 +267,7 @@ const getUploadById = asyncHandler(async (req, res) => {
 module.exports = {
   uploadExcel,
   getUserUploads,
-  getUploadById
+  getUploadById,
+  deleteUpload,
+  retryAnalysis
 };

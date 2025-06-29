@@ -1,8 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
 import { ChakraProvider } from '@chakra-ui/react';
-import 'react-toastify/dist/ReactToastify.css';
-import './styles/toast.css';
 import './App.css';
 
 import Dashboard from './pages/Dashboard';
@@ -10,6 +7,8 @@ import LandingPage from './pages/LandingPage';
 import Profile from './pages/Profile';
 import ExcelUpload from './pages/ExcelUpload';
 import DataVisualization from './pages/DataVisualization';
+import Analytics from './pages/Analytics';
+import Reports from './pages/Reports';
 import OAuthCallback from './pages/OAuthCallback';
 import PrivateRoute from './components/PrivateRoute';
 import { authService } from './utils/auth';
@@ -60,22 +59,24 @@ function App() {
                 </PrivateRoute>
               } 
             />
+            <Route 
+              path="/analytics" 
+              element={
+                <PrivateRoute>
+                  <Analytics />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/reports" 
+              element={
+                <PrivateRoute>
+                  <Reports />
+                </PrivateRoute>
+              } 
+            />
           </Routes>
           
-          <ToastContainer
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop={true}
-            closeOnClick={true}
-            rtl={false}
-            pauseOnFocusLoss={true}
-            draggable={true}
-            pauseOnHover={true}
-            theme="light"
-            limit={5}
-            className="custom-toast-container"
-          />
         </div>
       </Router>
     </ChakraProvider>

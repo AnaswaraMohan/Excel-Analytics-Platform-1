@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,6 +13,13 @@ import {
   Filler,
 } from 'chart.js';
 import { Line, Bar, Pie, Scatter } from 'react-chartjs-2';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { FaDownload, FaFilePdf, FaFileImage } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import { saveChart, markChartExported } from '../services/chartService';
+import { exportChartAsPNG, exportChartAsPDF, generateChartFilename } from '../utils/chartExport';
+import ChartThemeToggle from './ChartThemeToggle';
 
 // Register Chart.js components
 ChartJS.register(
@@ -28,8 +35,78 @@ ChartJS.register(
   Filler
 );
 
-const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
+const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType, uploadId }) => {
   const chartRef = useRef(null);
+  const chartContainerRef = useRef(null);
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+
+  // Save chart metadata when chart configuration changes
+  const saveChartMetadata = async () => {
+    if (uploadId && xAxisKey && yAxisKey && chartType) {
+      try {
+        await saveChart({
+          uploadId,
+          chartType,
+          xAxisKey,
+          yAxisKey,
+          chartConfig: {
+            timestamp: new Date().toISOString(),
+            dataPoints: jsonData?.length || 0
+          }
+        });
+      } catch (error) {
+        console.log('Chart metadata save failed (optional):', error);
+      }
+    }
+  };
+
+  // Auto-save chart metadata when configuration changes
+  useEffect(() => {
+    if (xAxisKey && yAxisKey && chartType && uploadId) {
+      saveChartMetadata();
+    }
+  }, [xAxisKey, yAxisKey, chartType, uploadId]);
+
+  // Export chart as PNG
+  const exportAsPNG = async () => {
+    if (chartRef.current) {
+      const chartInstance = chartRef.current;
+      const canvas = chartInstance.canvas;
+      const filename = generateChartFilename(chartType, xAxisKey, yAxisKey);
+      
+      exportChartAsPNG(canvas, filename);
+      toast.success('Chart exported as PNG successfully!');
+      
+      // Mark as exported (optional)
+      try {
+        await saveChartMetadata();
+      } catch (error) {
+        console.log('Export tracking failed (optional):', error);
+      }
+    }
+  };
+
+  // Export chart as PDF
+  const exportAsPDF = async () => {
+    if (chartContainerRef.current) {
+      try {
+        const filename = generateChartFilename(chartType, xAxisKey, yAxisKey);
+        await exportChartAsPDF(chartContainerRef.current, filename);
+        
+        toast.success('Chart exported as PDF successfully!');
+        
+        // Mark as exported (optional)
+        try {
+          await saveChartMetadata();
+        } catch (error) {
+          console.log('Export tracking failed (optional):', error);
+        }
+      } catch (error) {
+        console.error('Error exporting PDF:', error);
+        toast.error('Failed to export PDF');
+      }
+    }
+  };
 
   // Process data for chart
   const processChartData = () => {
@@ -50,10 +127,25 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
     return { labels, data };
   };
 
-  // Generate chart configuration based on type
+  // Generate chart configuration based on type and theme
   const getChartConfig = () => {
     const chartData = processChartData();
     if (!chartData) return null;
+
+    // Theme colors
+    const theme = isDarkTheme ? {
+      primary: 'rgb(96, 165, 250)', // blue-400
+      primaryBg: 'rgba(96, 165, 250, 0.1)',
+      gridColor: 'rgba(255, 255, 255, 0.1)',
+      textColor: '#ffffff',
+      backgroundColor: '#1f2937', // gray-800
+    } : {
+      primary: 'rgb(59, 130, 246)', // blue-600
+      primaryBg: 'rgba(59, 130, 246, 0.1)',
+      gridColor: 'rgba(0, 0, 0, 0.1)',
+      textColor: '#374151', // gray-700
+      backgroundColor: '#ffffff',
+    };
 
     const baseConfig = {
       labels: chartData.labels,
@@ -61,8 +153,8 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
         {
           label: yAxisKey,
           data: chartData.data,
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderColor: theme.primary,
+          backgroundColor: theme.primaryBg,
           borderWidth: 2,
           fill: false,
         },
@@ -75,10 +167,14 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
       plugins: {
         legend: {
           position: 'top',
+          labels: {
+            color: theme.textColor,
+          },
         },
         title: {
           display: true,
           text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${xAxisKey} vs ${yAxisKey}`,
+          color: theme.textColor,
         },
         tooltip: {
           mode: 'index',
@@ -91,6 +187,13 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
           title: {
             display: true,
             text: xAxisKey,
+            color: theme.textColor,
+          },
+          ticks: {
+            color: theme.textColor,
+          },
+          grid: {
+            color: theme.gridColor,
           },
         },
         y: {
@@ -98,6 +201,13 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
           title: {
             display: true,
             text: yAxisKey,
+            color: theme.textColor,
+          },
+          ticks: {
+            color: theme.textColor,
+          },
+          grid: {
+            color: theme.gridColor,
           },
         },
       },
@@ -111,7 +221,8 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
             datasets: [{
               ...baseConfig.datasets[0],
               fill: true,
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              backgroundColor: theme.primaryBg,
+              borderColor: theme.primary,
               tension: 0.4,
             }],
           },
@@ -124,8 +235,8 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
             ...baseConfig,
             datasets: [{
               ...baseConfig.datasets[0],
-              backgroundColor: 'rgba(59, 130, 246, 0.8)',
-              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: theme.primary.replace('rgb', 'rgba').replace(')', ', 0.8)'),
+              borderColor: theme.primary,
               borderWidth: 1,
             }],
           },
@@ -133,21 +244,32 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
         };
 
       case 'pie':
+        const pieColors = isDarkTheme ? [
+          'rgba(96, 165, 250, 0.8)', // blue-400
+          'rgba(34, 197, 94, 0.8)',  // green-500
+          'rgba(251, 191, 36, 0.8)', // amber-400
+          'rgba(248, 113, 113, 0.8)', // red-400
+          'rgba(168, 85, 247, 0.8)', // purple-400
+          'rgba(236, 72, 153, 0.8)', // pink-400
+          'rgba(6, 182, 212, 0.8)',  // cyan-500
+          'rgba(52, 211, 153, 0.8)', // emerald-400
+        ] : [
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(16, 185, 129, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(139, 92, 246, 0.8)',
+          'rgba(236, 72, 153, 0.8)',
+          'rgba(14, 165, 233, 0.8)',
+          'rgba(34, 197, 94, 0.8)',
+        ];
+
         return {
           data: {
             labels: chartData.labels,
             datasets: [{
               data: chartData.data,
-              backgroundColor: [
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(16, 185, 129, 0.8)',
-                'rgba(245, 158, 11, 0.8)',
-                'rgba(239, 68, 68, 0.8)',
-                'rgba(139, 92, 246, 0.8)',
-                'rgba(236, 72, 153, 0.8)',
-                'rgba(14, 165, 233, 0.8)',
-                'rgba(34, 197, 94, 0.8)',
-              ],
+              backgroundColor: pieColors,
               borderWidth: 2,
               borderColor: '#ffffff',
             }],
@@ -158,10 +280,14 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
             plugins: {
               legend: {
                 position: 'right',
+                labels: {
+                  color: theme.textColor,
+                },
               },
               title: {
                 display: true,
                 text: `${xAxisKey} Distribution`,
+                color: theme.textColor,
               },
             },
           },
@@ -176,8 +302,8 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
                 x: parseFloat(label) || index,
                 y: chartData.data[index],
               })),
-              backgroundColor: 'rgba(59, 130, 246, 0.6)',
-              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: theme.primary.replace('rgb', 'rgba').replace(')', ', 0.6)'),
+              borderColor: theme.primary,
               borderWidth: 1,
               pointRadius: 6,
               pointHoverRadius: 8,
@@ -189,10 +315,14 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
             plugins: {
               legend: {
                 position: 'top',
+                labels: {
+                  color: theme.textColor,
+                },
               },
               title: {
                 display: true,
                 text: `Scatter Plot: ${xAxisKey} vs ${yAxisKey}`,
+                color: theme.textColor,
               },
             },
             scales: {
@@ -202,12 +332,26 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
                 title: {
                   display: true,
                   text: xAxisKey,
+                  color: theme.textColor,
+                },
+                ticks: {
+                  color: theme.textColor,
+                },
+                grid: {
+                  color: theme.gridColor,
                 },
               },
               y: {
                 title: {
                   display: true,
                   text: yAxisKey,
+                  color: theme.textColor,
+                },
+                ticks: {
+                  color: theme.textColor,
+                },
+                grid: {
+                  color: theme.gridColor,
                 },
               },
             },
@@ -250,8 +394,40 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Chart Visualization</h3>
+    <div className={`rounded-lg shadow-md p-6 ${isDarkTheme ? 'bg-gray-800' : 'bg-white'}`} ref={chartContainerRef}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
+          Chart Visualization
+        </h3>
+        
+        <div className="flex items-center space-x-4">
+          {/* Theme Toggle */}
+          <ChartThemeToggle 
+            isDarkTheme={isDarkTheme} 
+            onThemeChange={setIsDarkTheme} 
+          />
+          
+          {/* Export Buttons */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={exportAsPNG}
+              className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              title="Export as PNG"
+            >
+              <FaFileImage className="mr-1" />
+              PNG
+            </button>
+            <button
+              onClick={exportAsPDF}
+              className="flex items-center px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              title="Export as PDF"
+            >
+              <FaFilePdf className="mr-1" />
+              PDF
+            </button>
+          </div>
+        </div>
+      </div>
       
       {/* Chart Container */}
       <div className="relative h-96 w-full">
@@ -259,23 +435,23 @@ const ChartRenderer = ({ jsonData, xAxisKey, yAxisKey, chartType }) => {
       </div>
 
       {/* Chart Info */}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+      <div className={`mt-4 p-3 rounded-lg ${isDarkTheme ? 'bg-gray-700' : 'bg-gray-50'}`}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <span className="font-medium text-gray-700">Chart Type:</span>
-            <p className="text-gray-600 capitalize">{chartType}</p>
+            <span className={`font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Chart Type:</span>
+            <p className={`capitalize ${isDarkTheme ? 'text-gray-400' : 'text-gray-600'}`}>{chartType}</p>
           </div>
           <div>
-            <span className="font-medium text-gray-700">X-Axis:</span>
-            <p className="text-gray-600">{xAxisKey}</p>
+            <span className={`font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>X-Axis:</span>
+            <p className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'}>{xAxisKey}</p>
           </div>
           <div>
-            <span className="font-medium text-gray-700">Y-Axis:</span>
-            <p className="text-gray-600">{yAxisKey}</p>
+            <span className={`font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Y-Axis:</span>
+            <p className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'}>{yAxisKey}</p>
           </div>
           <div>
-            <span className="font-medium text-gray-700">Data Points:</span>
-            <p className="text-gray-600">{jsonData?.length || 0}</p>
+            <span className={`font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Data Points:</span>
+            <p className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'}>{jsonData?.length || 0}</p>
           </div>
         </div>
       </div>

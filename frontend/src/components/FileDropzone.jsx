@@ -44,16 +44,17 @@ const FileDropzone = ({ onFileSelect, selectedFile, onRemoveFile }) => {
     const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
     
     if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-      alert('Please select only Excel files (.xls or .xlsx)');
+      console.log('Please select only Excel files (.xls or .xlsx)');
       return;
     }
     
-    // Check file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+    // Check file size (10MB limit - increased from 5MB)
+    if (file.size > 10 * 1024 * 1024) {
+      console.log("Operation completed");
       return;
     }
     
+    console.log("Operation completed");
     onFileSelect(file);
   };
 
@@ -81,10 +82,10 @@ const FileDropzone = ({ onFileSelect, selectedFile, onRemoveFile }) => {
       {!selectedFile ? (
         <div
           className={`
-            border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+            border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300
             ${isDragging 
-              ? 'border-blue-500 bg-blue-50' 
-              : 'border-gray-300 hover:border-gray-400'
+              ? 'border-pigmentgreen-500 bg-pigmentgreen-500/10 scale-[1.02]' 
+              : 'border-white/20 hover:border-pigmentgreen-400 hover:bg-white/5'
             }
           `}
           onDragEnter={handleDragEnter}
@@ -101,34 +102,41 @@ const FileDropzone = ({ onFileSelect, selectedFile, onRemoveFile }) => {
             className="hidden"
           />
           
-          <FiUpload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <p className="text-lg font-medium text-gray-700 mb-2">
+          <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+            isDragging ? 'bg-pigmentgreen-500' : 'bg-gradient-to-br from-pigmentgreen-500 to-malachite-500'
+          }`}>
+            <FiUpload className="w-8 h-8 text-white" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-3">
             Drop your Excel file here
-          </p>
-          <p className="text-sm text-gray-500 mb-4">
+          </h3>
+          <p className="text-white/70 mb-4 text-base">
             or click to browse files
           </p>
-          <p className="text-xs text-gray-400">
-            Supports .xls and .xlsx files up to 5MB
+          <p className="text-white/50 text-sm">
+            Supports .xls and .xlsx files up to 10MB
           </p>
         </div>
       ) : (
-        <div className="border rounded-lg p-4 bg-gray-50">
+        <div className="bg-white/10 border border-white/20 rounded-2xl p-6 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <FiFile className="h-8 w-8 text-green-500" />
+            <div className="flex items-center space-x-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center">
+                <FiFile className="w-7 h-7 text-white" />
+              </div>
               <div>
-                <p className="font-medium text-gray-700">{selectedFile.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-semibold text-white text-lg">{selectedFile.name}</p>
+                <p className="text-white/60 text-sm">
                   {formatFileSize(selectedFile.size)}
                 </p>
               </div>
             </div>
             <button
               onClick={onRemoveFile}
-              className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+              className="p-3 hover:bg-white/10 rounded-xl transition-colors text-white/60 hover:text-white"
+              title="Remove file"
             >
-              <FiX className="h-5 w-5 text-gray-500" />
+              <FiX className="h-5 w-5" />
             </button>
           </div>
         </div>
