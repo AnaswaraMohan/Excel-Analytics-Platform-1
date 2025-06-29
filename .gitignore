@@ -40,3 +40,6 @@ yarn-error.log*
 
 .cursor
 userinput.py
+
+# Confidential documentation
+Confidential.md
